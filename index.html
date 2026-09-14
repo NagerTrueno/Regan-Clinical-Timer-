@@ -124,7 +124,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 <body>
 <div class="app">
 <header>
-  <div class="brand"><h1>Regan Clinical & Research Timer</h1><p>多計時器 · 治療紀錄 · 行動研究 · V1.3</p></div>
+  <div class="brand"><h1>Regan Clinical & Research Timer</h1><p>多計時器 · 治療紀錄 · 行動研究 · V1.5</p></div>
   <div class="tabs">
     <button class="tab active" data-tab="session">Session</button>
     <button class="tab" data-tab="setup">Project Setup</button>
@@ -146,6 +146,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
       <button id="pauseBtn" class="btn" disabled>暫停全部</button>
       <button id="endBtn" class="btn danger" disabled>結束 Session</button>
       <button id="undoBtn" class="btn" disabled>Undo</button>
+      <button id="soundToggleBtn" class="btn">🔊 聲效開</button>
     </div>
   </div>
 
@@ -217,6 +218,16 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
   </div>
 
   <div class="card">
+    <div class="section-head">
+      <div>
+        <h2>🔔 提示設定</h2>
+        <div class="small muted">控制 Timer / Observation 到時時的提示聲效。</div>
+      </div>
+      <label class="toggle"><input id="soundEnabledSetup" type="checkbox" checked> 聲效提示</label>
+    </div>
+  </div>
+
+  <div class="card">
     <div class="section-head"><h2>🎨 顏色</h2><span class="small muted">可改整體及各按鈕顏色</span></div>
     <div class="grid4" style="margin-top:10px">
       <label>Accent<div class="color-line"><input id="accentColor" type="color"><input id="accentHex" type="text"></div></label>
@@ -232,7 +243,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
   </div>
 
   <div class="card">
-    <div class="section-head"><h2>🎛 Situations & Rules</h2><button id="addSituationBtn" class="btn">＋ 新增 Situation</button></div>
+    <div class="section-head"><div><h2>🎛 Situations & Rules</h2><div class="small muted">Prompt Cycle 建議：Waiting = Run；提示／刺激 = Reset to full time。</div></div><button id="addSituationBtn" class="btn">＋ 新增 Situation</button></div>
     <div id="situationSetup"></div>
   </div>
 
@@ -242,7 +253,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
   </div>
 
   <div class="card">
-    <div class="section-head"><h2>👁 Observation Groups</h2><button id="addObservationBtn" class="btn">＋ 新增 Observation</button></div>
+    <div class="section-head"><div><h2>👁 Observation Groups</h2><div class="small muted">Category / Rating：每個時間段由一開始即可記錄一次；記錄後鎖定，到下一段自動重新開放。</div></div><button id="addObservationBtn" class="btn">＋ 新增 Observation</button></div>
     <div id="observationSetup"></div>
   </div>
 </section>
@@ -285,16 +296,17 @@ const styles=(c)=>`background:${c};color:${textColor(c)};border-color:${c}`;
 function presetResearch(){
  const session={id:uid('t'),name:'Session Total',type:'session',enabled:true,time:'00:00:00'};
  const eligible={id:uid('t'),name:'Eligible Time',type:'accumulation',enabled:true,time:'00:20:00'};
- const prompt={id:uid('t'),name:'Prompt Cycle',type:'interval',enabled:true,time:'00:01:00'};
+ const prompt={id:uid('t'),name:'Prompt Cycle',type:'countdown',enabled:true,time:'00:01:00'};
  const stimulus={id:uid('t'),name:'Stimulus Duration',type:'duration',enabled:true,time:'00:00:30'};
  return {
   name:'Research Mode',
+  settings:{soundEnabled:true},
   colors:{accent:'#0b57d0',timer:'#d9ecff',response:'#fff0d8',observation:'#f1e6ff'},
   timers:[session,eligible,prompt,stimulus],
   situations:[
    {id:uid('s'),name:'等待學生反應',color:'#17803d',actions:{[session.id]:'run',[eligible.id]:'run',[prompt.id]:'run',[stimulus.id]:'pause'}},
-   {id:uid('s'),name:'提示學生',color:'#d97706',actions:{[session.id]:'run',[eligible.id]:'pause',[prompt.id]:'pause',[stimulus.id]:'pause'}},
-   {id:uid('s'),name:'提供刺激',color:'#b42318',actions:{[session.id]:'run',[eligible.id]:'pause',[prompt.id]:'pause',[stimulus.id]:'run'}}
+   {id:uid('s'),name:'提示學生',color:'#d97706',actions:{[session.id]:'run',[eligible.id]:'pause',[prompt.id]:'reset',[stimulus.id]:'pause'}},
+   {id:uid('s'),name:'提供刺激',color:'#b42318',actions:{[session.id]:'run',[eligible.id]:'pause',[prompt.id]:'reset',[stimulus.id]:'run'}}
   ],
   responses:[
    {id:uid('r'),name:'按掣',color:'#1d4ed8',mode:'trigger',targetSituationName:'提供刺激'},
@@ -309,15 +321,54 @@ function presetResearch(){
 }
 function presetSimple(){
  const s={id:uid('t'),name:'Session Total',type:'session',enabled:true,time:'00:00:00'};
- return {name:'Simple Stopwatch',colors:{accent:'#0b57d0',timer:'#d9ecff',response:'#fff0d8',observation:'#f1e6ff'},timers:[s],situations:[],responses:[],observations:[]};
+ return {name:'Simple Stopwatch',settings:{soundEnabled:true},colors:{accent:'#0b57d0',timer:'#d9ecff',response:'#fff0d8',observation:'#f1e6ff'},timers:[s],situations:[],responses:[],observations:[]};
 }
 function presetObservation(){
  const s={id:uid('t'),name:'Session Total',type:'session',enabled:true,time:'00:00:00'};
- return {name:'Treatment + Observation',colors:{accent:'#0b57d0',timer:'#d9ecff',response:'#fff0d8',observation:'#f1e6ff'},timers:[s],situations:[],responses:[{id:uid('r'),name:'學生反應',color:'#1d4ed8',mode:'count',targetSituationName:''}],observations:[{id:uid('o'),name:'笑容',color:'#be185d',type:'counter',enabled:true,interval:'00:05:00',options:['笑容']},{id:uid('o'),name:'清醒程度',color:'#7e22ce',type:'category',enabled:true,interval:'00:05:00',options:['清醒','半清醒','嗜睡','睡眠']}]};
+ return {name:'Treatment + Observation',settings:{soundEnabled:true},colors:{accent:'#0b57d0',timer:'#d9ecff',response:'#fff0d8',observation:'#f1e6ff'},timers:[s],situations:[],responses:[{id:uid('r'),name:'學生反應',color:'#1d4ed8',mode:'count',targetSituationName:''}],observations:[{id:uid('o'),name:'笑容',color:'#be185d',type:'counter',enabled:true,interval:'00:05:00',options:['笑容']},{id:uid('o'),name:'清醒程度',color:'#7e22ce',type:'category',enabled:true,interval:'00:05:00',options:['清醒','半清醒','嗜睡','睡眠']}]};
 }
-function presetBlank(){return {name:'Blank Project',colors:{accent:'#0b57d0',timer:'#d9ecff',response:'#fff0d8',observation:'#f1e6ff'},timers:[],situations:[],responses:[],observations:[]}}
+function presetBlank(){return {name:'Blank Project',settings:{soundEnabled:true},colors:{accent:'#0b57d0',timer:'#d9ecff',response:'#fff0d8',observation:'#f1e6ff'},timers:[],situations:[],responses:[],observations:[]}}
 
-let project=presetResearch();
+function migrateLegacyPromptLogic(p){
+  try{
+    const q=clone(p);
+    const prompt=q.timers?.find(t=>t.name==='Prompt Cycle');
+    if(prompt && (prompt.type==='interval' || prompt.type==='countdown')){
+      const promptSit=q.situations?.find(x=>x.name==='提示學生');
+      const stimSit=q.situations?.find(x=>x.name==='提供刺激');
+      const waitingSit=q.situations?.find(x=>x.name==='等待學生反應');
+      const oldPromptAction=promptSit?.actions?.[prompt.id];
+      const oldStimAction=stimSit?.actions?.[prompt.id];
+      const waitingAction=waitingSit?.actions?.[prompt.id];
+      const looksLikeOldLogic =
+        (!promptSit || oldPromptAction==='pause') &&
+        (!stimSit || oldStimAction==='pause') &&
+        (!waitingSit || waitingAction==='run');
+      if(looksLikeOldLogic){
+        prompt.type='countdown';
+        if(promptSit)promptSit.actions[prompt.id]='reset';
+        if(stimSit)stimSit.actions[prompt.id]='reset';
+        q.__promptLogicMigratedV14=true;
+      }
+    }
+    return q;
+  }catch(e){ return p; }
+}
+
+
+function ensureProjectDefaults(p){
+  const q=p||presetBlank();
+  q.settings=q.settings||{};
+  if(typeof q.settings.soundEnabled!=='boolean')q.settings.soundEnabled=true;
+  q.colors=q.colors||{accent:'#0b57d0',timer:'#d9ecff',response:'#fff0d8',observation:'#f1e6ff'};
+  q.timers=q.timers||[];
+  q.situations=q.situations||[];
+  q.responses=q.responses||[];
+  q.observations=q.observations||[];
+  return q;
+}
+
+let project=ensureProjectDefaults(presetResearch());
 let runtime=null;
 let lastSummary=null;
 let audioCtx=null;
@@ -332,10 +383,11 @@ function applyColors(){
  [['accentColor','accentHex','accent'],['timerColor','timerHex','timer'],['responseColor','responseHex','response'],['observationColor','observationHex','observation']].forEach(([a,b,k])=>{if($('#'+a)){ $('#'+a).value=c[k]; $('#'+b).value=c[k]; }});
 }
 function beep(){
+ if(project?.settings?.soundEnabled===false)return;
  try{
   audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();
   const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.connect(g);g.connect(audioCtx.destination);
-  o.frequency.value=880;g.gain.value=.07;o.start();o.stop(audioCtx.currentTime+.18);
+  o.frequency.value=880;g.gain.value=.075;o.start();o.stop(audioCtx.currentTime+.20);
  }catch(e){}
  if(navigator.vibrate) try{navigator.vibrate([120,80,120])}catch(e){}
 }
@@ -356,7 +408,10 @@ function timerAction(timerId,situationId=runtime?.situationId){
 }
 function startRuntime(){
  const tr={};project.timers.forEach(t=>tr[t.id]={elapsed:0,cycle:0,remaining:parseTime(t.time),due:false,pendingReset:false,lastAction:'ignore'});
- const or={};project.observations.forEach(o=>or[o.id]={cycle:0,due:false,total:0,segment:0,lastSegment:0,records:[]});
+ const or={};project.observations.forEach(o=>or[o.id]={
+  cycle:0,due:false,total:0,segment:0,lastSegment:0,records:[],
+  intervalIndex:1,recordedThisInterval:false,currentValue:''
+});
  const rr={};project.responses.forEach(r=>rr[r.id]=0);
  runtime={running:true,paused:false,ended:false,sessionSec:0,timers:tr,observations:or,responses:rr,situationId:project.situations[0]?.id||null,events:[],lastTick:Date.now(),undoStack:[]};
  addEvent('Session','Started');
@@ -373,7 +428,7 @@ function setSituation(id,source='manual'){
   if(t.type==='duration'&&newA==='run'&&oldA!=='run'){rt.elapsed=0;rt.due=false}
   if(t.type==='interval'&&rt.due&&newA==='pause')rt.pendingReset=true;
   if(t.type==='interval'&&newA==='run'&&rt.pendingReset){rt.cycle=0;rt.due=false;rt.pendingReset=false}
-  if(newA==='reset'){rt.elapsed=0;rt.cycle=0;rt.remaining=parseTime(t.time);rt.due=false;rt.pendingReset=false}
+  if(newA==='reset'){rt.elapsed=0;rt.cycle=0;rt.remaining=parseTime(t.time);rt.due=false;rt.pendingReset=false;rt.lastAction='reset'}
  });
  runtime.situationId=id;
  addEvent('Situation',currentSituationName(),source);
@@ -394,21 +449,44 @@ function observationCounter(id){
 }
 function observationCategory(id,value){
  const o=project.observations.find(x=>x.id===id),rt=runtime.observations[id];if(!o||!rt)return;
- rt.records.push({sessionSec:runtime.sessionSec,value});rt.due=false;rt.cycle=0;markUndo('observationCategory',id,{value});addEvent('Observation',o.name,value);renderSession();
+ if(rt.recordedThisInterval)return;
+ const int=parseTime(o.interval);
+ const intervalIndex=rt.intervalIndex||1;
+ rt.records.push({
+   sessionSec:runtime.sessionSec,
+   value,
+   intervalIndex,
+   intervalStartSec:int>0?(intervalIndex-1)*int:0,
+   intervalEndSec:int>0?intervalIndex*int:null
+ });
+ rt.recordedThisInterval=true;
+ rt.currentValue=value;
+ rt.due=false;
+ markUndo('observationCategory',id,{value,intervalIndex});
+ addEvent('Observation',o.name,`${value} · Segment ${intervalIndex}`);
+ renderSession();
 }
 function undo(){
  if(!runtime||!runtime.undoStack.length)return;
  const u=runtime.undoStack.pop();
  if(u.kind==='response'){runtime.responses[u.id]=Math.max(0,(runtime.responses[u.id]||0)-1);addEvent('Correction','Undo response',project.responses.find(r=>r.id===u.id)?.name||'')}
  if(u.kind==='observationCounter'){const rt=runtime.observations[u.id];rt.total=Math.max(0,rt.total-1);rt.segment=Math.max(0,rt.segment-1);addEvent('Correction','Undo observation count',project.observations.find(o=>o.id===u.id)?.name||'')}
- if(u.kind==='observationCategory'){const rt=runtime.observations[u.id];rt.records.pop();addEvent('Correction','Undo observation category',project.observations.find(o=>o.id===u.id)?.name||'')}
+ if(u.kind==='observationCategory'){
+  const rt=runtime.observations[u.id];
+  if(rt.records.length)rt.records.pop();
+  if(u.extra?.intervalIndex===rt.intervalIndex){
+    rt.recordedThisInterval=false;
+    rt.currentValue='';
+  }
+  addEvent('Correction','Undo observation category',project.observations.find(o=>o.id===u.id)?.name||'')
+}
  $('#undoBtn').disabled=!runtime.undoStack.length;renderSession();
 }
 function tick(){
  if(runtime&&runtime.running&&!runtime.paused&&!runtime.ended){
   const now=Date.now(),dt=Math.min(30,(now-runtime.lastTick)/1000);runtime.lastTick=now;runtime.sessionSec+=dt;
   project.timers.filter(t=>t.enabled).forEach(t=>{
-   const rt=runtime.timers[t.id],action=t.type==='independent'?'run':timerAction(t.id);
+   const rt=runtime.timers[t.id],action=t.type==='session'?'run':(t.type==='independent'?'run':timerAction(t.id));
    if(action==='run'){
     if(t.type==='session')rt.elapsed+=dt;
     else if(t.type==='accumulation')rt.elapsed+=dt;
@@ -425,14 +503,29 @@ function tick(){
    if(int>0){
     if(o.type==='counter'){
       rt.cycle+=dt;
-      if(rt.cycle>=int){
-       rt.lastSegment=rt.segment;rt.records.push({sessionSec:runtime.sessionSec,value:rt.segment});
+      while(rt.cycle>=int){
+       rt.lastSegment=rt.segment;
+       rt.records.push({sessionSec:runtime.sessionSec,value:rt.segment,intervalIndex:rt.intervalIndex||1});
        addEvent('Interval summary',o.name,`${rt.segment}`);
-       rt.segment=0;rt.cycle=rt.cycle-int;beep();
+       rt.segment=0;
+       rt.cycle-=int;
+       rt.intervalIndex=(rt.intervalIndex||1)+1;
+       beep();
       }
-    }else if(!rt.due){
+    }else{
+      // Category / Rating:
+      // Buttons are available from the START of every segment.
+      // Recording once locks the rest of that segment, but DOES NOT reset the interval clock.
       rt.cycle+=dt;
-      if(rt.cycle>=int){rt.cycle=int;rt.due=true;addEvent('Reminder',o.name,'Record now');beep()}
+      while(rt.cycle>=int){
+       rt.cycle-=int;
+       rt.intervalIndex=(rt.intervalIndex||1)+1;
+       rt.recordedThisInterval=false;
+       rt.currentValue='';
+       rt.due=true;
+       addEvent('Reminder',o.name,`New segment ${rt.intervalIndex}`);
+       beep();
+      }
     }
    }
   });
@@ -448,11 +541,17 @@ function timerDisplay(t){
  else if((t.type==='accumulation'||t.type==='duration')&&target>0)value=`${fmt(rt.elapsed)} / ${fmt(target)}`;
  else value=fmt(rt.elapsed);
  if(rt.due)note='提醒 / 目標已到';
- else if(t.type!=='session'&&t.type!=='independent'){const a=timerAction(t.id);note=a==='run'?'運行中':a==='pause'?'已暫停':'未受目前 Situation 控制'}
+ else if(t.type==='session')note='Session 開始後持續運行';else if(t.type!=='independent'){const a=timerAction(t.id);note=a==='run'?'運行中':a==='pause'?'已暫停':a==='reset'?'已重設':'未受目前 Situation 控制'}
  return {value,note};
 }
 function renderSession(){
+ project=ensureProjectDefaults(project);
  $('#sessionProjectName').textContent=project.name;
+ if($('#soundToggleBtn')){
+  const on=project.settings.soundEnabled!==false;
+  $('#soundToggleBtn').textContent=on?'🔊 聲效開':'🔇 聲效關';
+  $('#soundToggleBtn').setAttribute('aria-pressed',on?'true':'false');
+ }
  $('#currentSituation').textContent=runtime?(runtime.paused?'全部暫停':currentSituationName()||'無 Situation'):'尚未開始';
  $('#startBtn').disabled=!!runtime?.running;$('#pauseBtn').disabled=!runtime?.running;$('#endBtn').disabled=!runtime?.running;
  $('#pauseBtn').textContent=runtime?.paused?'繼續全部':'暫停全部';
@@ -465,16 +564,23 @@ function renderSession(){
  $('#responseButtons').innerHTML=project.responses.map(r=>`<button class="response-btn" data-res="${r.id}" style="${styles(r.color)}" ${!runtime?.running||runtime?.paused?'disabled':''}>${esc(r.name)}<span class="count">${runtime?.responses[r.id]||0}</span><span class="small">${r.mode==='count'?'只計數':'觸發 '+esc(r.targetSituationName)}</span></button>`).join('')||'<span class="muted">此 Project 沒有 Response Button。</span>';
  $('#observationGroups').innerHTML=project.observations.filter(o=>o.enabled).map(o=>{
   const rt=runtime?.observations[o.id];
-  const int=parseTime(o.interval),rem=rt?(rt.due?'到時':fmt(Math.max(0,int-rt.cycle))):o.interval;
+  const int=parseTime(o.interval),rem=rt?fmt(Math.max(0,int-rt.cycle)):o.interval;
   if(o.type==='counter') return `<div class="setup-row" style="border-color:${o.color}"><div class="section-head"><strong>${esc(o.name)}</strong><span class="badge">下一段 ${esc(rem)}</span></div><button class="obs-btn" data-obs-counter="${o.id}" style="${styles(o.color)}" ${!runtime?.running||runtime?.paused?'disabled':''}>＋1<span class="count" style="display:block;font-size:1.8rem">${rt?.total||0}</span><span class="small">本段 ${rt?.segment||0} · 上段 ${rt?.lastSegment||0}</span></button></div>`;
-  return `<div class="setup-row ${rt?.due?'overdue':''}" style="border-color:${o.color}"><div class="section-head"><strong>${esc(o.name)}</strong><span class="badge">${esc(rem)}</span></div><div class="situation-grid">${(o.options||[]).map(v=>`<button class="obs-btn" data-obs-cat="${o.id}" data-value="${esc(v)}" style="${styles(o.color)}" ${!runtime?.running||runtime?.paused?'disabled':''}>${esc(v)}</button>`).join('')}</div></div>`
+  const locked=!!rt?.recordedThisInterval;
+  const seg=rt?.intervalIndex||1;
+  const status=!runtime?'開始 Session 後可立即記錄':locked?`本段已記錄：${rt.currentValue}`:(rt?.due?'新時段：請記錄':'本段可隨時記錄一次');
+  return `<div class="setup-row ${rt?.due&&!locked?'overdue':''}" style="border-color:${o.color}">
+    <div class="section-head"><strong>${esc(o.name)}</strong><span class="badge">第 ${seg} 段 · ${esc(rem)}</span></div>
+    <div class="small muted" style="margin:3px 0 6px">${esc(status)}</div>
+    <div class="situation-grid">${(o.options||[]).map(v=>`<button class="obs-btn" data-obs-cat="${o.id}" data-value="${esc(v)}" style="${styles(o.color)}" ${!runtime?.running||runtime?.paused||locked?'disabled':''}>${esc(v)}</button>`).join('')}</div>
+  </div>`
  }).join('')||'<span class="muted">此 Project 沒有 Observation Group。</span>';
  $('#undoBtn').disabled=!runtime?.undoStack?.length;
  renderLog();
  let notices=[];
  if(runtime){
   project.timers.filter(t=>t.enabled&&runtime.timers[t.id]?.due).forEach(t=>notices.push(`${t.name} 已到時`));
-  project.observations.filter(o=>o.enabled&&runtime.observations[o.id]?.due).forEach(o=>notices.push(`請記錄：${o.name}`));
+  project.observations.filter(o=>o.enabled&&runtime.observations[o.id]?.due&&!runtime.observations[o.id]?.recordedThisInterval).forEach(o=>notices.push(`請記錄：${o.name}`));
  }
  $('#sessionNotice').innerHTML=notices.length?`<div class="notice">${notices.map(esc).join('　｜　')}</div>`:'';
 }
@@ -562,9 +668,11 @@ function exportCSV(){
  const blob=new Blob(["\ufeff"+csv],{type:'text/csv;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`${(src.project||'session').replace(/[^\w\u4e00-\u9fff-]+/g,'_')}_${new Date().toISOString().slice(0,10)}.csv`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 }
 function renderSetup(){
+ project=ensureProjectDefaults(project);
  $('#projectName').value=project.name;applyColors();
+ if($('#soundEnabledSetup'))$('#soundEnabledSetup').checked=project.settings.soundEnabled!==false;
  $('#timerSetup').innerHTML=project.timers.map(t=>`<div class="setup-row"><div class="setup-grid"><label class="toggle"><input type="checkbox" data-ten="${t.id}" ${t.enabled?'checked':''}>啟用</label><label>名稱<input data-tn="${t.id}" type="text" value="${esc(t.name)}"></label><label>類型<select data-tt="${t.id}"><option value="session" ${t.type==='session'?'selected':''}>Session Stopwatch</option><option value="accumulation" ${t.type==='accumulation'?'selected':''}>Accumulation</option><option value="interval" ${t.type==='interval'?'selected':''}>Conditional Interval</option><option value="independent" ${t.type==='independent'?'selected':''}>Independent Interval</option><option value="duration" ${t.type==='duration'?'selected':''}>Duration</option><option value="countdown" ${t.type==='countdown'?'selected':''}>Countdown</option></select></label><label>時間<input data-tv="${t.id}" type="text" value="${esc(t.time)}" placeholder="HH:MM:SS"></label><button class="btn danger" data-td="${t.id}">刪除</button></div></div>`).join('')||'<div class="muted" style="margin-top:10px">未有 Timer。</div>';
- $('#situationSetup').innerHTML=project.situations.map(s=>`<div class="setup-row"><div class="grid3"><label>Situation 名稱<input data-sn="${s.id}" value="${esc(s.name)}"></label><label>顏色<div class="color-line"><input data-sc="${s.id}" type="color" value="${s.color}"><input data-sh="${s.id}" value="${s.color}"></div></label><div style="display:flex;align-items:end"><button class="btn danger" data-sd="${s.id}">刪除</button></div></div><div class="rule-table" style="margin-top:10px"><table><thead><tr><th>Timer</th><th>此 Situation 的動作</th></tr></thead><tbody>${project.timers.map(t=>`<tr><td>${esc(t.name)}${t.enabled?'':'（已關閉）'}</td><td><select data-rule-s="${s.id}" data-rule-t="${t.id}" ${t.enabled?'':'disabled'}><option value="ignore" ${(s.actions?.[t.id]||'ignore')==='ignore'?'selected':''}>Ignore</option><option value="run" ${s.actions?.[t.id]==='run'?'selected':''}>Run / Resume</option><option value="pause" ${s.actions?.[t.id]==='pause'?'selected':''}>Pause</option><option value="reset" ${s.actions?.[t.id]==='reset'?'selected':''}>Reset</option></select></td></tr>`).join('')}</tbody></table></div></div>`).join('')||'<div class="muted" style="margin-top:10px">未有 Situation。</div>';
+ $('#situationSetup').innerHTML=project.situations.map(s=>`<div class="setup-row"><div class="grid3"><label>Situation 名稱<input data-sn="${s.id}" value="${esc(s.name)}"></label><label>顏色<div class="color-line"><input data-sc="${s.id}" type="color" value="${s.color}"><input data-sh="${s.id}" value="${s.color}"></div></label><div style="display:flex;align-items:end"><button class="btn danger" data-sd="${s.id}">刪除</button></div></div><div class="rule-table" style="margin-top:10px"><table><thead><tr><th>Timer</th><th>此 Situation 的動作</th></tr></thead><tbody>${project.timers.map(t=>`<tr><td>${esc(t.name)}${t.enabled?'':'（已關閉）'}</td><td><select data-rule-s="${s.id}" data-rule-t="${t.id}" ${t.enabled?'':'disabled'}><option value="ignore" ${(s.actions?.[t.id]||'ignore')==='ignore'?'selected':''}>Ignore</option><option value="run" ${s.actions?.[t.id]==='run'?'selected':''}>Run / Resume</option><option value="pause" ${s.actions?.[t.id]==='pause'?'selected':''}>Pause</option><option value="reset" ${s.actions?.[t.id]==='reset'?'selected':''}>Reset to full time</option></select></td></tr>`).join('')}</tbody></table></div></div>`).join('')||'<div class="muted" style="margin-top:10px">未有 Situation。</div>';
  $('#responseSetup').innerHTML=project.responses.map(r=>`<div class="setup-row"><div class="grid4"><label>名稱<input data-rn="${r.id}" value="${esc(r.name)}"></label><label>模式<select data-rm="${r.id}"><option value="count" ${r.mode==='count'?'selected':''}>只計數 + Timestamp</option><option value="trigger" ${r.mode==='trigger'?'selected':''}>計數 + 切換 Situation</option></select></label><label>切換至<select data-rt="${r.id}" ${r.mode==='trigger'?'':'disabled'}><option value="">—</option>${project.situations.map(s=>`<option ${r.targetSituationName===s.name?'selected':''}>${esc(s.name)}</option>`).join('')}</select></label><label>顏色<div class="color-line"><input data-rc="${r.id}" type="color" value="${r.color}"><input data-rh="${r.id}" value="${r.color}"></div></label></div><button class="btn danger" style="margin-top:8px" data-rd="${r.id}">刪除</button></div>`).join('')||'<div class="muted" style="margin-top:10px">未有 Response。</div>';
  $('#observationSetup').innerHTML=project.observations.map(o=>`<div class="setup-row"><div class="grid4"><label class="toggle"><input type="checkbox" data-oen="${o.id}" ${o.enabled?'checked':''}>啟用</label><label>名稱<input data-on="${o.id}" value="${esc(o.name)}"></label><label>類型<select data-ot="${o.id}"><option value="counter" ${o.type==='counter'?'selected':''}>Event Counter</option><option value="category" ${o.type==='category'?'selected':''}>Category</option><option value="rating" ${o.type==='rating'?'selected':''}>Rating</option></select></label><label>Reminder interval<input data-oi="${o.id}" value="${esc(o.interval)}"></label></div><div class="grid2" style="margin-top:8px"><label>按鈕／選項（逗號分隔）<input data-oo="${o.id}" value="${esc((o.options||[]).join(', '))}"></label><label>顏色<div class="color-line"><input data-oc="${o.id}" type="color" value="${o.color}"><input data-oh="${o.id}" value="${o.color}"></div></label></div><button class="btn danger" style="margin-top:8px" data-od="${o.id}">刪除</button></div>`).join('')||'<div class="muted" style="margin-top:10px">未有 Observation。</div>';
  bindSetup();
@@ -619,7 +727,7 @@ function saveProject(){
 }
 function loadSaved(){
  const name=$('#savedProjects').value,all=storageGet();if(!name||!all[name])return;
- project=clone(all[name]);activeStoredName=name;runtime=null;applyColors();renderSetup();renderSession();
+ project=ensureProjectDefaults(migrateLegacyPromptLogic(clone(all[name])));activeStoredName=name;runtime=null;applyColors();renderSetup();renderSession();autoSaveCurrent();
  $('#setupMsg').textContent=`已載入「${name}」；之後修改會自動保存。`;
 }
 function exportFullBackup(){
@@ -662,14 +770,25 @@ function showTab(name){
 }
 $$('.tab').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
 $('#startBtn').onclick=()=>{try{audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)()}catch(e){};startRuntime()};
+
+function setSoundEnabled(enabled){
+ project=ensureProjectDefaults(project);
+ project.settings.soundEnabled=!!enabled;
+ if($('#soundEnabledSetup'))$('#soundEnabledSetup').checked=project.settings.soundEnabled;
+ autoSaveCurrent();
+ renderSession();
+}
+
 $('#pauseBtn').onclick=()=>{if(!runtime)return;runtime.paused=!runtime.paused;runtime.lastTick=Date.now();addEvent('Session',runtime.paused?'Paused':'Resumed');renderSession()};
 $('#endBtn').onclick=endSession;$('#undoBtn').onclick=undo;
+$('#soundToggleBtn').onclick=()=>setSoundEnabled(project?.settings?.soundEnabled===false);
+$('#soundEnabledSetup').onchange=e=>setSoundEnabled(e.target.checked);
 document.addEventListener('click',e=>{const s=e.target.closest('[data-sit]');if(s)setSituation(s.dataset.sit);const r=e.target.closest('[data-res]');if(r)responseClick(r.dataset.res);const c=e.target.closest('[data-obs-counter]');if(c)observationCounter(c.dataset.obsCounter);const k=e.target.closest('[data-obs-cat]');if(k)observationCategory(k.dataset.obsCat,k.dataset.value)});
 $('#addTimerBtn').onclick=()=>{const t={id:uid('t'),name:'New Timer',type:'countdown',enabled:true,time:'00:05:00'};project.timers.push(t);project.situations.forEach(s=>{s.actions=s.actions||{};s.actions[t.id]='ignore'});renderSetup();autoSaveCurrent()};
 $('#addSituationBtn').onclick=()=>{const a={};project.timers.forEach(t=>a[t.id]='ignore');project.situations.push({id:uid('s'),name:'New Situation',color:'#15803d',actions:a});renderSetup();renderSession();autoSaveCurrent()};
 $('#addResponseBtn').onclick=()=>{project.responses.push({id:uid('r'),name:'New Response',color:'#1d4ed8',mode:'count',targetSituationName:''});renderSetup();renderSession();autoSaveCurrent()};
 $('#addObservationBtn').onclick=()=>{project.observations.push({id:uid('o'),name:'New Observation',color:'#7e22ce',type:'counter',enabled:true,interval:'00:05:00',options:['Option 1']});renderSetup();renderSession();autoSaveCurrent()};
-$('#loadPresetBtn').onclick=()=>{const v=$('#presetSelect').value;project=v==='simple'?presetSimple():v==='observation'?presetObservation():v==='blank'?presetBlank():presetResearch();activeStoredName=null;runtime=null;applyColors();renderSetup();renderSession();$('#setupMsg').textContent='Preset 已載入；按「儲存」建立新 Project。'};
+$('#loadPresetBtn').onclick=()=>{const v=$('#presetSelect').value;project=ensureProjectDefaults(v==='simple'?presetSimple():v==='observation'?presetObservation():v==='blank'?presetBlank():presetResearch());activeStoredName=null;runtime=null;applyColors();renderSetup();renderSession();$('#setupMsg').textContent='Preset 已載入；按「儲存」建立新 Project。'};
 $('#saveProjectBtn').onclick=saveProject;$('#loadProjectBtn').onclick=loadSaved;
 $('#duplicateProjectBtn').onclick=()=>{project=clone(project);project.name=(project.name||'Project')+' Copy';activeStoredName=null;$('#projectName').value=project.name;$('#setupMsg').textContent='已建立副本；按「儲存」即可保存。'};
 $('#deleteProjectBtn').onclick=()=>{const n=$('#savedProjects').value;if(!n)return;const all=storageGet();delete all[n];storageSet(all);if(activeStoredName===n)activeStoredName=null;refreshProjectList();$('#setupMsg').textContent=`已刪除「${n}」。`};
