@@ -2,7 +2,7 @@
 <html lang="zh-HK">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#0b57d0">
 <title>Regan Clinical & Research Timer</title>
 <style>
@@ -116,6 +116,150 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 #sessionView #eventLogPanel.hidden{display:none!important}
 #sessionView #soundToggleBtn.alerting{outline:3px solid #d92d20;outline-offset:2px}
 
+
+/* V1.7 — device-adaptive layout */
+html,body{
+  overscroll-behavior:none;
+  -webkit-text-size-adjust:100%;
+  touch-action:manipulation;
+}
+button,input,select,textarea{
+  touch-action:manipulation;
+}
+body.device-iphone .app{
+  max-width:none;
+  padding:8px 8px 28px;
+}
+body.device-iphone header{
+  margin-bottom:8px;
+}
+body.device-iphone .brand h1{
+  font-size:1.08rem;
+}
+body.device-iphone .brand p{
+  font-size:.78rem;
+}
+body.device-iphone .tabs{
+  gap:5px;
+}
+body.device-iphone .tab{
+  min-height:40px;
+  padding:7px 10px;
+  font-size:.86rem;
+}
+body.device-iphone #sessionView .session-dashboard{
+  grid-template-columns:1fr;
+  gap:6px;
+}
+body.device-iphone #sessionView .session-timer-grid{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:6px;
+}
+body.device-iphone #sessionView .timer-card{
+  padding:7px 8px;
+}
+body.device-iphone #sessionView .timer-value{
+  font-size:1.28rem;
+}
+body.device-iphone #sessionView .card{
+  padding:8px 9px;
+  margin-bottom:6px;
+}
+body.device-iphone #sessionView .sit-btn{
+  min-height:48px;
+  padding:6px;
+  font-size:.86rem;
+}
+body.device-iphone #sessionView .response-btn{
+  min-height:52px;
+  padding:6px;
+  font-size:.84rem;
+}
+body.device-iphone #sessionView .response-btn .count{
+  font-size:1.22rem;
+}
+body.device-iphone #sessionView .obs-grid{
+  grid-template-columns:1fr;
+}
+body.device-iphone #sessionView .observation-panel .setup-row{
+  padding:6px;
+}
+body.device-iphone #sessionView .observation-panel .obs-btn{
+  min-height:44px;
+  padding:6px;
+  font-size:.84rem;
+}
+body.device-iphone #sessionView .panel-title{
+  padding:6px 8px;
+  font-size:.9rem;
+}
+body.device-iphone #sessionView .session-head-card .btn{
+  min-height:40px;
+  padding:7px 9px;
+  font-size:.84rem;
+}
+body.device-iphone #sessionView .actions{
+  gap:5px;
+}
+body.device-iphone .log-row{
+  font-size:.8rem;
+}
+
+/* iPad portrait / split-screen: compact 2-column session dashboard */
+body.device-ipad .app{
+  max-width:1360px;
+  padding:12px 14px 34px;
+}
+body.device-ipad #sessionView .session-dashboard{
+  grid-template-columns:minmax(0,.90fr) minmax(0,1.35fr);
+  gap:8px;
+}
+body.device-ipad #sessionView .session-timer-grid{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+}
+body.device-ipad #sessionView .obs-grid{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+}
+body.device-ipad #sessionView .card{
+  margin-bottom:7px;
+}
+body.device-ipad #sessionView .timer-value{
+  font-size:1.55rem;
+}
+
+/* iPad landscape / wide desktop: use width efficiently */
+@media (min-width: 1050px){
+  body.device-ipad #sessionView .session-dashboard,
+  body.device-desktop #sessionView .session-dashboard{
+    grid-template-columns:minmax(0,.82fr) minmax(0,1.48fr);
+  }
+  body.device-ipad #sessionView .session-timer-grid,
+  body.device-desktop #sessionView .session-timer-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  body.device-ipad #sessionView .obs-grid,
+  body.device-desktop #sessionView .obs-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+
+/* Very narrow phone */
+@media (max-width: 390px){
+  body.device-iphone #sessionView .session-timer-grid{
+    grid-template-columns:1fr 1fr;
+  }
+  body.device-iphone #sessionView .timer-name{font-size:.78rem}
+  body.device-iphone #sessionView .timer-value{font-size:1.12rem}
+  body.device-iphone #sessionView .timer-note{font-size:.68rem}
+  body.device-iphone #sessionView .situation-grid,
+  body.device-iphone #sessionView .response-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+
+/* Prevent accidental horizontal page movement */
+html,body,.app{max-width:100%;overflow-x:hidden}
+
 </style>
 
 <link rel="manifest" href="manifest.webmanifest">
@@ -129,7 +273,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 <body>
 <div class="app">
 <header>
-  <div class="brand"><h1>Regan Clinical & Research Timer</h1><p>多計時器 · 治療紀錄 · 行動研究 · V1.6</p></div>
+  <div class="brand"><h1>Regan Clinical & Research Timer</h1><p>多計時器 · 治療紀錄 · 行動研究 · V1.7 <span id="deviceModeLabel"></span></p></div>
   <div class="tabs">
     <button class="tab active" data-tab="session">Session</button>
     <button class="tab" data-tab="setup">Project Setup</button>
@@ -293,6 +437,38 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 <script>
 (()=>{
 'use strict';
+
+function applyDeviceClass(){
+  const ua=navigator.userAgent||'';
+  const platform=navigator.platform||'';
+  const touch=navigator.maxTouchPoints||0;
+  const isIPhone=/iPhone|iPod/i.test(ua);
+  const isIPad=/iPad/i.test(ua) || (platform==='MacIntel' && touch>1);
+  document.body.classList.remove('device-iphone','device-ipad','device-desktop');
+  const mode=isIPhone?'device-iphone':(isIPad?'device-ipad':'device-desktop');
+  document.body.classList.add(mode);
+  const label=document.getElementById('deviceModeLabel');
+  if(label)label.textContent=mode==='device-iphone'?'· iPhone layout':(mode==='device-ipad'?'· iPad layout':'· Desktop layout');
+}
+applyDeviceClass();
+window.addEventListener('resize',applyDeviceClass);
+
+// Lock pinch / gesture zoom for treatment use.
+['gesturestart','gesturechange','gestureend'].forEach(type=>{
+  document.addEventListener(type,e=>e.preventDefault(),{passive:false});
+});
+document.addEventListener('touchmove',e=>{
+  if(e.touches && e.touches.length>1)e.preventDefault();
+},{passive:false});
+
+// Prevent rapid double-tap zoom while keeping normal single-tap operation.
+let lastTouchEnd=0;
+document.addEventListener('touchend',e=>{
+  const now=Date.now();
+  if(now-lastTouchEnd<=300)e.preventDefault();
+  lastTouchEnd=now;
+},{passive:false});
+
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const uid=p=>p+Math.random().toString(36).slice(2,9);
 const clone=o=>JSON.parse(JSON.stringify(o));
