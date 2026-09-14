@@ -71,6 +71,46 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 @keyframes pulse{50%{transform:scale(1.02);filter:brightness(1.08)}}
 @media(prefers-reduced-motion:reduce){.overdue{animation:none}}
 .hidden{display:none!important}
+
+/* V1.3 compact treatment dashboard */
+#sessionView .card{padding:10px 12px;margin-bottom:8px}
+#sessionView .session-head-card{padding:10px 12px}
+#sessionView .session-head-card h2{font-size:1.15rem;margin:0}
+#sessionView .session-head-card .actions{margin-top:8px!important}
+#sessionView .session-head-card .btn{min-height:42px;padding:8px 12px}
+#sessionView .session-dashboard{display:grid;grid-template-columns:minmax(0,.95fr) minmax(0,1.35fr);gap:8px;align-items:start}
+#sessionView .session-left,#sessionView .session-right{min-width:0}
+#sessionView .session-timer-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:8px}
+#sessionView .timer-card{padding:9px 10px;border-radius:14px}
+#sessionView .timer-name{font-size:.9rem}
+#sessionView .timer-value{font-size:1.62rem;line-height:1.12}
+#sessionView .timer-note{font-size:.76rem}
+#sessionView .panel-title{padding:7px 10px;margin-bottom:7px}
+#sessionView .situation-grid,#sessionView .response-grid{gap:7px}
+#sessionView .sit-btn{min-height:50px;padding:7px 8px;font-size:.93rem}
+#sessionView .response-btn{min-height:57px;padding:7px 8px;font-size:.92rem}
+#sessionView .response-btn .count{font-size:1.4rem;margin-top:1px}
+#sessionView .observation-panel{margin-bottom:8px}
+#sessionView .obs-grid{grid-template-columns:repeat(auto-fit,minmax(245px,1fr));gap:7px}
+#sessionView .observation-panel .setup-row{padding:7px;margin:0;border-radius:13px}
+#sessionView .observation-panel .obs-btn{min-height:47px;padding:7px 8px;font-size:.9rem}
+#sessionView .observation-panel .situation-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+#sessionView .observation-panel .section-head{gap:6px}
+#sessionView .observation-panel .badge{font-size:.72rem;padding:3px 7px}
+#sessionView details.event-card{padding:8px 12px}
+#sessionView details.event-card>summary{cursor:pointer;font-weight:900;list-style-position:inside}
+#sessionView details.event-card .log{max-height:230px}
+#sessionView .notice{padding:8px 10px;margin-bottom:8px}
+@media(max-width:900px){
+  #sessionView .session-dashboard{grid-template-columns:1fr}
+  #sessionView .session-timer-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:520px){
+  #sessionView .session-timer-grid{grid-template-columns:1fr 1fr}
+  #sessionView .timer-value{font-size:1.35rem}
+  #sessionView .obs-grid{grid-template-columns:1fr}
+}
+
 </style>
 
 <link rel="manifest" href="manifest.webmanifest">
@@ -84,7 +124,7 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 <body>
 <div class="app">
 <header>
-  <div class="brand"><h1>Regan Clinical & Research Timer</h1><p>多計時器 · 治療紀錄 · 行動研究</p></div>
+  <div class="brand"><h1>Regan Clinical & Research Timer</h1><p>多計時器 · 治療紀錄 · 行動研究 · V1.3</p></div>
   <div class="tabs">
     <button class="tab active" data-tab="session">Session</button>
     <button class="tab" data-tab="setup">Project Setup</button>
@@ -95,40 +135,47 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 <main>
 <section id="sessionView" class="view active">
   <div id="sessionNotice"></div>
-  <div class="card">
+
+  <div class="card session-head-card">
     <div class="section-head">
       <div><div class="muted small">Project</div><h2 id="sessionProjectName">Research Mode</h2></div>
-      <div style="text-align:right"><div class="muted small">目前 Situation</div><div id="currentSituation" style="font-size:1.35rem;font-weight:900">尚未開始</div></div>
+      <div style="text-align:right"><div class="muted small">目前 Situation</div><div id="currentSituation" style="font-size:1.22rem;font-weight:900">尚未開始</div></div>
     </div>
-    <div class="actions" style="margin-top:12px">
+    <div class="actions">
       <button id="startBtn" class="btn primary">開始 Session</button>
       <button id="pauseBtn" class="btn" disabled>暫停全部</button>
       <button id="endBtn" class="btn danger" disabled>結束 Session</button>
-      <button id="undoBtn" class="btn" disabled>Undo 最近紀錄</button>
+      <button id="undoBtn" class="btn" disabled>Undo</button>
     </div>
   </div>
 
-  <div id="timerGrid" class="grid3"></div>
+  <div class="session-dashboard">
+    <div class="session-left">
+      <div id="timerGrid" class="session-timer-grid"></div>
 
-  <div class="card">
-    <div class="section-head"><h3>🎛 Situation</h3><span class="small muted">你只需選擇當下情況，Timer 會按規則自行運作</span></div>
-    <div id="situationButtons" class="situation-grid" style="margin-top:10px"></div>
+      <div class="card">
+        <div class="section-head"><h3>🎛 Situation</h3><span class="small muted">選擇當下情況</span></div>
+        <div id="situationButtons" class="situation-grid" style="margin-top:7px"></div>
+      </div>
+    </div>
+
+    <div class="session-right">
+      <div class="card response-panel">
+        <div class="panel-title">🙋 學生反應</div>
+        <div id="responseButtons" class="response-grid"></div>
+      </div>
+
+      <div class="card observation-panel">
+        <div class="panel-title">👁 Observation</div>
+        <div id="observationGroups" class="obs-grid"></div>
+      </div>
+    </div>
   </div>
 
-  <div class="card response-panel">
-    <div class="panel-title">🙋 學生反應</div>
-    <div id="responseButtons" class="response-grid"></div>
-  </div>
-
-  <div class="card observation-panel">
-    <div class="panel-title">👁 Observation Groups</div>
-    <div id="observationGroups" class="obs-grid"></div>
-  </div>
-
-  <div class="card">
-    <div class="section-head"><h3>Event Log</h3><span id="eventCount" class="badge">0 events</span></div>
-    <div id="eventLog" class="log" style="margin-top:10px"></div>
-  </div>
+  <details class="card event-card">
+    <summary>Event Log　<span id="eventCount" class="badge">0 events</span></summary>
+    <div id="eventLog" class="log" style="margin-top:8px"></div>
+  </details>
 </section>
 
 <section id="setupView" class="view">
@@ -153,6 +200,18 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
         </select>
       </label>
       <button id="loadPresetBtn" class="btn">載入 Preset</button>
+    </div>
+    <hr>
+    <div class="section-head">
+      <div>
+        <strong>Backup / 跨裝置</strong>
+        <div class="small muted">將所有已儲存 Project 及 Session History 備份成 JSON；可放入 iCloud Drive，再於另一部裝置匯入。</div>
+      </div>
+      <div class="actions">
+        <button id="exportBackupBtn" class="btn">匯出完整 Backup</button>
+        <button id="importBackupBtn" class="btn">匯入 Backup</button>
+        <input id="importBackupFile" type="file" accept=".json,application/json" class="hidden">
+      </div>
     </div>
     <div id="setupMsg" class="small muted" style="margin-top:8px"></div>
   </div>
@@ -190,7 +249,20 @@ hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 
 <section id="historyView" class="view">
   <div class="card">
-    <div class="section-head"><h2>Session Summary</h2><div class="actions"><button id="exportCsvBtn" class="btn primary">匯出 CSV</button><button id="clearSummaryBtn" class="btn">清除目前 Summary</button></div></div>
+    <div class="section-head">
+      <div>
+        <h2>Session History</h2>
+        <div class="small muted">完成 Session 後會自動保存在此裝置；End Session 不會自動跳到這頁。</div>
+      </div>
+      <div class="actions">
+        <button id="exportCsvBtn" class="btn primary">匯出所選 Session CSV</button>
+        <button id="deleteHistoryBtn" class="btn danger">刪除所選 Session</button>
+      </div>
+    </div>
+    <div class="projectbar" style="margin-top:10px">
+      <label>已保存 Session<select id="historySelect"></select></label>
+      <button id="loadHistoryBtn" class="btn">顯示</button>
+    </div>
     <div id="summaryBody" style="margin-top:12px"></div>
   </div>
 </section>
@@ -249,6 +321,7 @@ let project=presetResearch();
 let runtime=null;
 let lastSummary=null;
 let audioCtx=null;
+let activeStoredName=null;
 
 function applyColors(){
  const c=project.colors;
@@ -410,17 +483,76 @@ function renderLog(){
  $('#eventCount').textContent=`${runtime.events.length} events`;
  el.innerHTML=runtime.events.slice(-30).reverse().map(e=>`<div class="log-row"><div>${esc(e.clock)}</div><div><strong>${esc(e.type)}</strong></div><div class="detail">${esc(e.name)} ${e.value?`— ${esc(e.value)}`:''}<div class="small muted">Session ${fmt(e.sessionSec)}${e.situation?' · '+esc(e.situation):''}</div></div></div>`).join('')||'<div class="muted" style="padding:10px 0">尚未有事件。</div>';
 }
+function historyGet(){
+ try{return JSON.parse(localStorage.getItem('reganTimerSessionHistory')||'[]')}catch(e){return []}
+}
+function historySet(list){
+ try{localStorage.setItem('reganTimerSessionHistory',JSON.stringify(list));return true}catch(e){return false}
+}
+function saveHistoryItem(item){
+ const list=historyGet();
+ list.unshift(item);
+ if(list.length>200)list.length=200;
+ historySet(list);
+ refreshHistoryList();
+}
+function refreshHistoryList(){
+ const sel=$('#historySelect');if(!sel)return;
+ const list=historyGet();
+ sel.innerHTML=list.length?list.map(x=>{
+   const d=new Date(x.date);
+   const label=`${d.toLocaleDateString()} ${d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})} · ${x.project} · ${fmt(x.duration)}`;
+   return `<option value="${esc(x.id)}">${esc(label)}</option>`;
+ }).join(''):'<option value="">（未有已完成 Session）</option>';
+}
+function loadHistorySelection(){
+ const id=$('#historySelect')?.value;
+ if(!id)return;
+ const item=historyGet().find(x=>x.id===id);
+ if(item){lastSummary=item;renderSummary()}
+}
+function deleteHistorySelection(){
+ const id=$('#historySelect')?.value;if(!id)return;
+ const list=historyGet().filter(x=>x.id!==id);
+ historySet(list);
+ if(lastSummary?.id===id)lastSummary=list[0]||null;
+ refreshHistoryList();renderSummary();
+}
 function endSession(){
  if(!runtime||!runtime.running)return;
- addEvent('Session','Ended');runtime.running=false;runtime.ended=true;
- lastSummary={project:project.name,date:new Date().toISOString(),duration:runtime.sessionSec,timers:clone(runtime.timers),responses:clone(runtime.responses),observations:clone(runtime.observations),events:clone(runtime.events)};
- renderSession();renderSummary();showTab('history');
+ addEvent('Session','Ended');
+ runtime.running=false;runtime.ended=true;
+ const summary={
+   id:uid('h'),
+   project:project.name,
+   projectSnapshot:clone(project),
+   date:new Date().toISOString(),
+   duration:runtime.sessionSec,
+   timers:clone(runtime.timers),
+   responses:clone(runtime.responses),
+   observations:clone(runtime.observations),
+   events:clone(runtime.events)
+ };
+ lastSummary=summary;
+ saveHistoryItem(summary);
+
+ // End stays on Session screen. Reset all live timers/counters immediately.
+ runtime=null;
+ $('#startBtn').textContent='開始 Session';
+ renderSession();
+ renderSummary();
+ $('#sessionNotice').innerHTML='<div class="notice">Session 已結束並保存到 Session History；所有計時器及即時計數已重設。</div>';
 }
 function renderSummary(){
- const el=$('#summaryBody');if(!lastSummary){el.innerHTML='<div class="muted">尚未有已完成 Session。</div>';return}
- const res=project.responses.map(r=>`${esc(r.name)}: <strong>${lastSummary.responses[r.id]||0}</strong>`).join(' · ');
- const obs=project.observations.filter(o=>o.enabled).map(o=>{const rt=lastSummary.observations[o.id];return o.type==='counter'?`${esc(o.name)}: <strong>${rt?.total||0}</strong>`:`${esc(o.name)}: <strong>${rt?.records?.length||0} records</strong>`}).join(' · ');
- el.innerHTML=`<div class="grid3"><div class="timer-card"><div class="timer-name">Project</div><div style="font-size:1.25rem;font-weight:900">${esc(lastSummary.project)}</div></div><div class="timer-card"><div class="timer-name">Session Total</div><div class="timer-value">${fmt(lastSummary.duration)}</div></div><div class="timer-card"><div class="timer-name">Events</div><div class="timer-value">${lastSummary.events.length}</div></div></div><div class="card" style="margin-top:12px"><strong>Responses</strong><div style="margin-top:6px">${res||'—'}</div><hr><strong>Observations</strong><div style="margin-top:6px">${obs||'—'}</div></div><div class="log">${lastSummary.events.slice().reverse().map(e=>`<div class="log-row"><div>${esc(e.clock)}</div><div><strong>${esc(e.type)}</strong></div><div class="detail">${esc(e.name)} ${e.value?`— ${esc(e.value)}`:''}</div></div>`).join('')}</div>`;
+ const el=$('#summaryBody');if(!el)return;
+ if(!lastSummary){el.innerHTML='<div class="muted">尚未有已完成 Session。</div>';return}
+ const snap=lastSummary.projectSnapshot||project;
+ const res=(snap.responses||[]).map(r=>`${esc(r.name)}: <strong>${lastSummary.responses?.[r.id]||0}</strong>`).join(' · ');
+ const obs=(snap.observations||[]).filter(o=>o.enabled).map(o=>{
+   const rt=lastSummary.observations?.[o.id];
+   return o.type==='counter'?`${esc(o.name)}: <strong>${rt?.total||0}</strong>`:`${esc(o.name)}: <strong>${rt?.records?.length||0} records</strong>`;
+ }).join(' · ');
+ el.innerHTML=`<div class="grid3"><div class="timer-card"><div class="timer-name">Project</div><div style="font-size:1.2rem;font-weight:900">${esc(lastSummary.project)}</div></div><div class="timer-card"><div class="timer-name">Session Total</div><div class="timer-value">${fmt(lastSummary.duration)}</div></div><div class="timer-card"><div class="timer-name">Events</div><div class="timer-value">${lastSummary.events?.length||0}</div></div></div><div class="card" style="margin-top:12px"><strong>Responses</strong><div style="margin-top:6px">${res||'—'}</div><hr><strong>Observations</strong><div style="margin-top:6px">${obs||'—'}</div></div><div class="log">${(lastSummary.events||[]).slice().reverse().map(e=>`<div class="log-row"><div>${esc(e.clock)}</div><div><strong>${esc(e.type)}</strong></div><div class="detail">${esc(e.name)} ${e.value?`— ${esc(e.value)}`:''}</div></div>`).join('')}</div>`;
 }
 function exportCSV(){
  const src=lastSummary|| (runtime?{events:runtime.events,project:project.name}:null);if(!src)return;
@@ -442,18 +574,18 @@ function bindSetup(){
  $$('[data-tn]').forEach(e=>e.onchange=()=>{project.timers.find(t=>t.id===e.dataset.tn).name=e.value.trim()||'Unnamed Timer';renderSetup();renderSession()});
  $$('[data-tt]').forEach(e=>e.onchange=()=>project.timers.find(t=>t.id===e.dataset.tt).type=e.value);
  $$('[data-tv]').forEach(e=>e.onchange=()=>project.timers.find(t=>t.id===e.dataset.tv).time=e.value.trim()||'00:00:00');
- $$('[data-td]').forEach(e=>e.onclick=()=>{const id=e.dataset.td;project.timers=project.timers.filter(t=>t.id!==id);project.situations.forEach(s=>delete s.actions[id]);renderSetup();renderSession()});
+ $$('[data-td]').forEach(e=>e.onclick=()=>{const id=e.dataset.td;project.timers=project.timers.filter(t=>t.id!==id);project.situations.forEach(s=>delete s.actions[id]);renderSetup();renderSession();autoSaveCurrent()});
  $$('[data-sn]').forEach(e=>e.onchange=()=>{const s=project.situations.find(x=>x.id===e.dataset.sn),old=s.name;s.name=e.value.trim()||'Unnamed Situation';project.responses.forEach(r=>{if(r.targetSituationName===old)r.targetSituationName=s.name});renderSetup();renderSession()});
  $$('[data-sc]').forEach(e=>e.oninput=()=>{const s=project.situations.find(x=>x.id===e.dataset.sc);s.color=e.value;renderSetup();renderSession()});
  $$('[data-sh]').forEach(e=>e.onchange=()=>{if(validHex(e.value)){project.situations.find(x=>x.id===e.dataset.sh).color=e.value;renderSetup();renderSession()}});
- $$('[data-sd]').forEach(e=>e.onclick=()=>{const s=project.situations.find(x=>x.id===e.dataset.sd);project.situations=project.situations.filter(x=>x.id!==e.dataset.sd);project.responses.forEach(r=>{if(r.targetSituationName===s?.name)r.targetSituationName=''});renderSetup();renderSession()});
+ $$('[data-sd]').forEach(e=>e.onclick=()=>{const s=project.situations.find(x=>x.id===e.dataset.sd);project.situations=project.situations.filter(x=>x.id!==e.dataset.sd);project.responses.forEach(r=>{if(r.targetSituationName===s?.name)r.targetSituationName=''});renderSetup();renderSession();autoSaveCurrent()});
  $$('[data-rule-s]').forEach(e=>e.onchange=()=>{project.situations.find(s=>s.id===e.dataset.ruleS).actions[e.dataset.ruleT]=e.value});
  $$('[data-rn]').forEach(e=>e.onchange=()=>{project.responses.find(r=>r.id===e.dataset.rn).name=e.value.trim()||'Unnamed Response';renderSession()});
  $$('[data-rm]').forEach(e=>e.onchange=()=>{const r=project.responses.find(r=>r.id===e.dataset.rm);r.mode=e.value;if(r.mode==='count')r.targetSituationName='';renderSetup();renderSession()});
  $$('[data-rt]').forEach(e=>e.onchange=()=>project.responses.find(r=>r.id===e.dataset.rt).targetSituationName=e.value);
  $$('[data-rc]').forEach(e=>e.oninput=()=>{project.responses.find(r=>r.id===e.dataset.rc).color=e.value;renderSetup();renderSession()});
  $$('[data-rh]').forEach(e=>e.onchange=()=>{if(validHex(e.value)){project.responses.find(r=>r.id===e.dataset.rh).color=e.value;renderSetup();renderSession()}});
- $$('[data-rd]').forEach(e=>e.onclick=()=>{project.responses=project.responses.filter(r=>r.id!==e.dataset.rd);renderSetup();renderSession()});
+ $$('[data-rd]').forEach(e=>e.onclick=()=>{project.responses=project.responses.filter(r=>r.id!==e.dataset.rd);renderSetup();renderSession();autoSaveCurrent()});
  $$('[data-oen]').forEach(e=>e.onchange=()=>{project.observations.find(o=>o.id===e.dataset.oen).enabled=e.checked;renderSession()});
  $$('[data-on]').forEach(e=>e.onchange=()=>{project.observations.find(o=>o.id===e.dataset.on).name=e.value.trim()||'Unnamed Observation';renderSession()});
  $$('[data-ot]').forEach(e=>e.onchange=()=>project.observations.find(o=>o.id===e.dataset.ot).type=e.value);
@@ -461,44 +593,99 @@ function bindSetup(){
  $$('[data-oo]').forEach(e=>e.onchange=()=>project.observations.find(o=>o.id===e.dataset.oo).options=e.value.split(',').map(x=>x.trim()).filter(Boolean));
  $$('[data-oc]').forEach(e=>e.oninput=()=>{project.observations.find(o=>o.id===e.dataset.oc).color=e.value;renderSetup();renderSession()});
  $$('[data-oh]').forEach(e=>e.onchange=()=>{if(validHex(e.value)){project.observations.find(o=>o.id===e.dataset.oh).color=e.value;renderSetup();renderSession()}});
- $$('[data-od]').forEach(e=>e.onclick=()=>{project.observations=project.observations.filter(o=>o.id!==e.dataset.od);renderSetup();renderSession()});
+ $$('[data-od]').forEach(e=>e.onclick=()=>{project.observations=project.observations.filter(o=>o.id!==e.dataset.od);renderSetup();renderSession();autoSaveCurrent()});
 }
 function storageGet(){try{return JSON.parse(localStorage.getItem('reganTimerProjects')||'{}')}catch(e){return {}}}
 function storageSet(x){try{localStorage.setItem('reganTimerProjects',JSON.stringify(x));return true}catch(e){return false}}
 function refreshProjectList(){
- const list=storageGet(),sel=$('#savedProjects');const names=Object.keys(list).sort();sel.innerHTML=names.length?names.map(n=>`<option>${esc(n)}</option>`).join(''):'<option value="">（未有已儲存 Project）</option>';
+ const list=storageGet(),sel=$('#savedProjects');const names=Object.keys(list).sort();
+ sel.innerHTML=names.length?names.map(n=>`<option ${n===activeStoredName?'selected':''}>${esc(n)}</option>`).join(''):'<option value="">（未有已儲存 Project）</option>';
+}
+function autoSaveCurrent(){
+ if(!activeStoredName)return;
+ const all=storageGet();
+ const newName=project.name||activeStoredName;
+ if(newName!==activeStoredName){delete all[activeStoredName];activeStoredName=newName}
+ all[activeStoredName]=clone(project);
+ storageSet(all);
+ refreshProjectList();
 }
 function saveProject(){
- project.name=$('#projectName').value.trim()||'Unnamed Project';const all=storageGet();all[project.name]=clone(project);
- $('#setupMsg').textContent=storageSet(all)?`已儲存「${project.name}」。`:'此瀏覽器未能儲存 local data。';
+ project.name=$('#projectName').value.trim()||'Unnamed Project';
+ const all=storageGet();all[project.name]=clone(project);
+ activeStoredName=project.name;
+ $('#setupMsg').textContent=storageSet(all)?`已儲存「${project.name}」。之後修改會自動保存。`:'此瀏覽器未能儲存 local data。';
  refreshProjectList();renderSession();
 }
 function loadSaved(){
- const name=$('#savedProjects').value,all=storageGet();if(!name||!all[name])return;project=clone(all[name]);runtime=null;applyColors();renderSetup();renderSession();$('#setupMsg').textContent=`已載入「${name}」。`;
+ const name=$('#savedProjects').value,all=storageGet();if(!name||!all[name])return;
+ project=clone(all[name]);activeStoredName=name;runtime=null;applyColors();renderSetup();renderSession();
+ $('#setupMsg').textContent=`已載入「${name}」；之後修改會自動保存。`;
+}
+function exportFullBackup(){
+ const payload={
+   format:'ReganClinicalResearchTimerBackup',
+   version:1,
+   exportedAt:new Date().toISOString(),
+   projects:storageGet(),
+   sessionHistory:historyGet()
+ };
+ const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json;charset=utf-8'});
+ const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+ a.download=`Regan_Timer_Backup_${new Date().toISOString().slice(0,10)}.json`;
+ a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+ $('#setupMsg').textContent='完整 Backup 已匯出。建議儲存在 iCloud Drive。';
+}
+async function importFullBackup(file){
+ try{
+   const data=JSON.parse(await file.text());
+   if(!data||typeof data.projects!=='object')throw new Error('invalid');
+   const existing=storageGet();
+   storageSet({...existing,...data.projects});
+   if(Array.isArray(data.sessionHistory)){
+     const old=historyGet();
+     const byId=new Map();
+     [...data.sessionHistory,...old].forEach(x=>byId.set(x.id||`${x.date}-${x.project}`,x));
+     historySet([...byId.values()].sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,200));
+   }
+   refreshProjectList();refreshHistoryList();
+   $('#setupMsg').textContent=`Backup 已匯入：${Object.keys(data.projects).length} 個 Project。`;
+ }catch(e){
+   $('#setupMsg').textContent='無法匯入：請確認這是由本 App 匯出的 JSON Backup。';
+ }
 }
 function showTab(name){
  $$('.tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));
  $$('.view').forEach(v=>v.classList.remove('active'));
  $('#'+name+'View').classList.add('active');
- if(name==='setup')renderSetup();if(name==='history')renderSummary();
+ if(name==='setup')renderSetup();if(name==='history'){refreshHistoryList();renderSummary();}
 }
 $$('.tab').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
 $('#startBtn').onclick=()=>{try{audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)()}catch(e){};startRuntime()};
 $('#pauseBtn').onclick=()=>{if(!runtime)return;runtime.paused=!runtime.paused;runtime.lastTick=Date.now();addEvent('Session',runtime.paused?'Paused':'Resumed');renderSession()};
 $('#endBtn').onclick=endSession;$('#undoBtn').onclick=undo;
 document.addEventListener('click',e=>{const s=e.target.closest('[data-sit]');if(s)setSituation(s.dataset.sit);const r=e.target.closest('[data-res]');if(r)responseClick(r.dataset.res);const c=e.target.closest('[data-obs-counter]');if(c)observationCounter(c.dataset.obsCounter);const k=e.target.closest('[data-obs-cat]');if(k)observationCategory(k.dataset.obsCat,k.dataset.value)});
-$('#addTimerBtn').onclick=()=>{const t={id:uid('t'),name:'New Timer',type:'countdown',enabled:true,time:'00:05:00'};project.timers.push(t);project.situations.forEach(s=>{s.actions=s.actions||{};s.actions[t.id]='ignore'});renderSetup()};
-$('#addSituationBtn').onclick=()=>{const a={};project.timers.forEach(t=>a[t.id]='ignore');project.situations.push({id:uid('s'),name:'New Situation',color:'#15803d',actions:a});renderSetup();renderSession()};
-$('#addResponseBtn').onclick=()=>{project.responses.push({id:uid('r'),name:'New Response',color:'#1d4ed8',mode:'count',targetSituationName:''});renderSetup();renderSession()};
-$('#addObservationBtn').onclick=()=>{project.observations.push({id:uid('o'),name:'New Observation',color:'#7e22ce',type:'counter',enabled:true,interval:'00:05:00',options:['Option 1']});renderSetup();renderSession()};
-$('#loadPresetBtn').onclick=()=>{const v=$('#presetSelect').value;project=v==='simple'?presetSimple():v==='observation'?presetObservation():v==='blank'?presetBlank():presetResearch();runtime=null;applyColors();renderSetup();renderSession();$('#setupMsg').textContent='Preset 已載入；可以再修改後儲存。'};
+$('#addTimerBtn').onclick=()=>{const t={id:uid('t'),name:'New Timer',type:'countdown',enabled:true,time:'00:05:00'};project.timers.push(t);project.situations.forEach(s=>{s.actions=s.actions||{};s.actions[t.id]='ignore'});renderSetup();autoSaveCurrent()};
+$('#addSituationBtn').onclick=()=>{const a={};project.timers.forEach(t=>a[t.id]='ignore');project.situations.push({id:uid('s'),name:'New Situation',color:'#15803d',actions:a});renderSetup();renderSession();autoSaveCurrent()};
+$('#addResponseBtn').onclick=()=>{project.responses.push({id:uid('r'),name:'New Response',color:'#1d4ed8',mode:'count',targetSituationName:''});renderSetup();renderSession();autoSaveCurrent()};
+$('#addObservationBtn').onclick=()=>{project.observations.push({id:uid('o'),name:'New Observation',color:'#7e22ce',type:'counter',enabled:true,interval:'00:05:00',options:['Option 1']});renderSetup();renderSession();autoSaveCurrent()};
+$('#loadPresetBtn').onclick=()=>{const v=$('#presetSelect').value;project=v==='simple'?presetSimple():v==='observation'?presetObservation():v==='blank'?presetBlank():presetResearch();activeStoredName=null;runtime=null;applyColors();renderSetup();renderSession();$('#setupMsg').textContent='Preset 已載入；按「儲存」建立新 Project。'};
 $('#saveProjectBtn').onclick=saveProject;$('#loadProjectBtn').onclick=loadSaved;
-$('#duplicateProjectBtn').onclick=()=>{project=clone(project);project.name=(project.name||'Project')+' Copy';$('#projectName').value=project.name;$('#setupMsg').textContent='已建立副本；按「儲存」即可保存。'};
-$('#deleteProjectBtn').onclick=()=>{const n=$('#savedProjects').value;if(!n)return;const all=storageGet();delete all[n];storageSet(all);refreshProjectList();$('#setupMsg').textContent=`已刪除「${n}」。`};
-$('#exportCsvBtn').onclick=exportCSV;$('#clearSummaryBtn').onclick=()=>{lastSummary=null;renderSummary()};
+$('#duplicateProjectBtn').onclick=()=>{project=clone(project);project.name=(project.name||'Project')+' Copy';activeStoredName=null;$('#projectName').value=project.name;$('#setupMsg').textContent='已建立副本；按「儲存」即可保存。'};
+$('#deleteProjectBtn').onclick=()=>{const n=$('#savedProjects').value;if(!n)return;const all=storageGet();delete all[n];storageSet(all);if(activeStoredName===n)activeStoredName=null;refreshProjectList();$('#setupMsg').textContent=`已刪除「${n}」。`};
+$('#exportCsvBtn').onclick=exportCSV;
 [['accentColor','accentHex','accent'],['timerColor','timerHex','timer'],['responseColor','responseHex','response'],['observationColor','observationHex','observation']].forEach(([c,h,k])=>{$('#'+c).oninput=e=>{project.colors[k]=e.target.value;$('#'+h).value=e.target.value;applyColors();renderSession()};$('#'+h).onchange=e=>{if(validHex(e.target.value)){project.colors[k]=e.target.value;$('#'+c).value=e.target.value;applyColors();renderSession()}else e.target.value=project.colors[k]}});
-$('#projectName').onchange=e=>{project.name=e.target.value.trim()||'Unnamed Project';renderSession()};
-refreshProjectList();applyColors();renderSetup();renderSession();renderSummary();requestAnimationFrame(tick);
+
+$('#exportBackupBtn').onclick=exportFullBackup;
+$('#importBackupBtn').onclick=()=>$('#importBackupFile').click();
+$('#importBackupFile').onchange=e=>{const f=e.target.files?.[0];if(f)importFullBackup(f);e.target.value=''};
+$('#loadHistoryBtn').onclick=loadHistorySelection;
+$('#deleteHistoryBtn').onclick=deleteHistorySelection;
+$('#setupView').addEventListener('change',()=>autoSaveCurrent());
+$('#setupView').addEventListener('input',()=>autoSaveCurrent());
+
+$('#projectName').onchange=e=>{project.name=e.target.value.trim()||'Unnamed Project';renderSession();autoSaveCurrent()};
+refreshProjectList();refreshHistoryList();lastSummary=historyGet()[0]||null;applyColors();renderSetup();renderSession();renderSummary();requestAnimationFrame(tick);
 })();
 </script>
 
