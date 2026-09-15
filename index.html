@@ -305,7 +305,7 @@ html,body,.app{max-width:100%;overflow-x:hidden}
 <body>
 <div class="app">
 <header>
-  <div class="brand"><h1>Regan Clinical & Research Timer</h1><p>多計時器 · 治療紀錄 · 行動研究 · V2.0 <span id="deviceModeLabel"></span></p></div>
+  <div class="brand"><h1>Regan Clinical & Research Timer</h1><p>多計時器 · 治療紀錄 · 行動研究 · V2.2 <span id="deviceModeLabel"></span></p></div>
   <div class="tabs">
     <button class="tab active" data-tab="session">Session</button>
     <button class="tab" data-tab="setup">Project Setup</button>
@@ -429,7 +429,7 @@ html,body,.app{max-width:100%;overflow-x:hidden}
   </div>
 
   <div class="card">
-    <div class="section-head"><div><h2>🎛 Situations & Rules</h2><div class="small muted">Prompt Cycle 建議：Waiting = Run；提示／刺激 = Reset to full time。</div></div><button id="addSituationBtn" class="btn">＋ 新增 Situation</button></div>
+    <div class="section-head"><div><h2>🎛 Situations & Rules</h2><div class="small muted">Prompt Cycle 建議：Waiting = Run；提示／刺激 = Reset + Pause。轉回 Waiting 後才重新倒數。</div></div><button id="addSituationBtn" class="btn">＋ 新增 Situation</button></div>
     <div id="situationSetup"></div>
   </div>
 
@@ -717,7 +717,7 @@ function timerAction(timerId,situationId=runtime?.situationId){
  return s.actions?.[timerId]||'ignore';
 }
 function startRuntime(){
- const tr={};project.timers.forEach(t=>tr[t.id]={elapsed:0,cycle:0,remaining:parseTime(t.time),due:false,pendingReset:false,lastAction:'ignore'});
+ const tr={};project.timers.forEach(t=>tr[t.id]={elapsed:0,cycle:0,remaining:parseTime(t.time),due:false,pendingReset:false,lastAction:'ignore',resetHold:false});
  const or={};project.observations.forEach(o=>or[o.id]={
   cycle:0,due:false,total:0,segment:0,lastSegment:0,records:[],
   intervalIndex:1,recordedThisInterval:false,currentValue:''
@@ -738,7 +738,13 @@ function setSituation(id,source='manual'){
   if(t.type==='duration'&&newA==='run'&&oldA!=='run'){rt.elapsed=0;rt.due=false}
   if(t.type==='interval'&&rt.due&&newA==='pause')rt.pendingReset=true;
   if(t.type==='interval'&&newA==='run'&&rt.pendingReset){rt.cycle=0;rt.due=false;rt.pendingReset=false}
-  if(newA==='reset'){rt.elapsed=0;rt.cycle=0;rt.remaining=parseTime(t.time);rt.due=false;rt.pendingReset=false;rt.lastAction='reset'}
+  if(newA==='reset'){
+    rt.elapsed=0;rt.cycle=0;rt.remaining=parseTime(t.time);
+    rt.due=false;rt.pendingReset=false;rt.lastAction='reset';
+    rt.resetHold=true;
+  }else if(newA==='run'&&oldA!=='run'){
+    rt.resetHold=false;
+  }
  });
  runtime.situationId=id;
  addEvent('Situation',currentSituationName(),source);
@@ -796,7 +802,7 @@ function tick(){
  if(runtime&&runtime.running&&!runtime.paused&&!runtime.ended){
   const now=Date.now(),dt=Math.min(30,(now-runtime.lastTick)/1000);runtime.lastTick=now;runtime.sessionSec+=dt;
   project.timers.filter(t=>t.enabled).forEach(t=>{
-   const rt=runtime.timers[t.id],action=(t.type==='session'||t.alwaysRun)?'run':timerAction(t.id);
+   const rt=runtime.timers[t.id],action=rt.resetHold?'pause':((t.type==='session'||t.alwaysRun)?'run':timerAction(t.id));
    if(action==='run'){
     if(t.type==='session')rt.elapsed+=dt;
     else if(t.type==='accumulation')rt.elapsed+=dt;
@@ -866,13 +872,15 @@ function timerDisplay(t){
   if(t.type==='accumulation'&&target>0)parts.push(`目標 ${fmt(target)}`);
   if(t.type==='duration'&&target>0)parts.push(`目標 ${fmt(target)}`);
   if(t.type==='countdown'&&target>0)parts.push(`倒數 ${fmt(target)}`);
-  if(t.alwaysRun){
+  if(rt.resetHold){
+   parts.push('已重設並暫停');
+  }else if(t.alwaysRun){
    parts.push('持續運行');
   }else{
    const a=timerAction(t.id);
    if(a==='run')parts.push('運行中');
    else if(a==='pause')parts.push('已暫停');
-   else if(a==='reset')parts.push('已重設');
+   else if(a==='reset')parts.push('已重設並暫停');
    else parts.push('未受目前 Situation 控制');
   }
   note=parts.join(' · ');
@@ -896,7 +904,10 @@ function renderSession(){
  $('#observationGroups').innerHTML=project.observations.filter(o=>o.enabled).map(o=>{
   const rt=runtime?.observations[o.id];
   const int=parseTime(o.interval),rem=rt?fmt(Math.max(0,int-rt.cycle)):o.interval;
-  if(o.type==='counter') return `<div class="setup-row" style="border-color:${o.color}"><div class="section-head"><strong>${esc(o.name)}</strong><span class="badge">下一段 ${esc(rem)}</span></div><button class="obs-btn" data-obs-counter="${o.id}" style="${styles(o.color)}" ${!runtime?.running||runtime?.paused?'disabled':''}>＋1<span class="count" style="display:block;font-size:1.8rem">${rt?.total||0}</span><span class="small">本段 ${rt?.segment||0} · 上段 ${rt?.lastSegment||0}</span></button></div>`;
+  if(o.type==='counter'){
+   const seg=rt?.intervalIndex||1;
+   return `<div class="setup-row" style="border-color:${o.color}"><div class="section-head"><strong>${esc(o.name)}</strong><span class="badge">第 ${seg} 段 · ${esc(rem)}</span></div><button class="obs-btn" data-obs-counter="${o.id}" style="${styles(o.color)}" ${!runtime?.running||runtime?.paused?'disabled':''}>＋1<span class="count" style="display:block;font-size:1.8rem">${rt?.total||0}</span><span class="small">本段 ${rt?.segment||0} · 上段 ${rt?.lastSegment||0}</span></button></div>`;
+  }
   const locked=!!rt?.recordedThisInterval;
   const seg=rt?.intervalIndex||1;
   const status=!runtime?'開始 Session 後可立即記錄':locked?`本段已記錄：${rt.currentValue}`:(rt?.due?'新時段：請記錄':'本段可隨時記錄一次');
@@ -981,16 +992,123 @@ function endSession(){
  renderSummary();
  $('#sessionNotice').innerHTML='<div class="notice">Session 已結束並保存到 Session History；所有計時器及即時計數已重設。</div>';
 }
+
+function observationTotalSegments(o,duration){
+ const int=parseTime(o?.interval);
+ if(!(int>0)||!(duration>0))return 0;
+ return Math.max(1,Math.ceil(duration/int));
+}
+function uniqueRecordedIntervals(records){
+ const set=new Set();
+ (records||[]).forEach(r=>{
+   const n=Number(r?.intervalIndex);
+   if(Number.isFinite(n)&&n>0)set.add(n);
+ });
+ return set;
+}
+function pct(n,d){
+ if(!d)return '0%';
+ const v=n/d*100;
+ return `${Number.isInteger(v)?v.toFixed(0):v.toFixed(1)}%`;
+}
+function renderObservationSummaryCard(o,rt,duration){
+ const totalSegments=observationTotalSegments(o,duration);
+ const int=parseTime(o.interval);
+
+ if(o.type==='counter'){
+   const recorded=new Set();
+   (rt?.records||[]).forEach(r=>{
+     const idx=Number(r?.intervalIndex);
+     if(Number.isFinite(idx)&&idx>0&&Number(r?.value)>0)recorded.add(idx);
+   });
+
+   // A session may end midway through the current segment; include it if events occurred.
+   const currentIndex=Math.max(1,Number(rt?.intervalIndex)||1);
+   if(Number(rt?.segment)>0)recorded.add(currentIndex);
+
+   const recordedCount=totalSegments
+     ? [...recorded].filter(i=>i<=totalSegments).length
+     : recorded.size;
+
+   return `<div class="setup-row" style="border-color:${o.color||'#ccd6e0'}">
+     <div class="section-head">
+       <strong>${esc(o.name)}</strong>
+       <span class="badge">Event Counter</span>
+     </div>
+     <div class="grid3" style="margin-top:8px">
+       <div><div class="small muted">事件總數</div><div style="font-size:1.35rem;font-weight:900">${rt?.total||0}</div></div>
+       <div><div class="small muted">有紀錄時段 / 總時段</div><div style="font-size:1.35rem;font-weight:900">${recordedCount} / ${totalSegments}</div></div>
+       <div><div class="small muted">時段長度</div><div style="font-size:1.1rem;font-weight:900">${int>0?fmt(int):'—'}</div></div>
+     </div>
+   </div>`;
+ }
+
+ const options=o.options||[];
+ const records=rt?.records||[];
+ const recordedIntervals=uniqueRecordedIntervals(records);
+ const rows=options.map(v=>{
+   const n=records.filter(r=>String(r?.value)===String(v)).length;
+   return `<div class="log-row">
+     <div><strong>${esc(v)}</strong></div>
+     <div>${n} / ${totalSegments}</div>
+     <div class="detail"><strong>${pct(n,totalSegments)}</strong> of total segments</div>
+   </div>`;
+ }).join('');
+
+ const recordedCount=totalSegments
+   ? [...recordedIntervals].filter(i=>i<=totalSegments).length
+   : recordedIntervals.size;
+ const missing=Math.max(0,totalSegments-recordedCount);
+
+ return `<div class="setup-row" style="border-color:${o.color||'#ccd6e0'}">
+   <div class="section-head">
+     <strong>${esc(o.name)}</strong>
+     <span class="badge">${o.type==='rating'?'Rating':'Category'}</span>
+   </div>
+   <div class="small muted" style="margin:5px 0 8px">
+     已記錄 ${recordedCount} / ${totalSegments} 時段${missing?` · 未記錄 ${missing} 時段`:''}
+   </div>
+   <div class="log">${rows||'<div class="muted">未設定類別。</div>'}</div>
+ </div>`;
+}
+
 function renderSummary(){
  const el=$('#summaryBody');if(!el)return;
  if(!lastSummary){el.innerHTML='<div class="muted">尚未有已完成 Session。</div>';return}
  const snap=lastSummary.projectSnapshot||project;
  const res=(snap.responses||[]).map(r=>`${esc(r.name)}: <strong>${lastSummary.responses?.[r.id]||0}</strong>`).join(' · ');
- const obs=(snap.observations||[]).filter(o=>o.enabled).map(o=>{
-   const rt=lastSummary.observations?.[o.id];
-   return o.type==='counter'?`${esc(o.name)}: <strong>${rt?.total||0}</strong>`:`${esc(o.name)}: <strong>${rt?.records?.length||0} records</strong>`;
- }).join(' · ');
- el.innerHTML=`<div class="grid3"><div class="timer-card"><div class="timer-name">Project</div><div style="font-size:1.2rem;font-weight:900">${esc(lastSummary.project)}</div></div><div class="timer-card"><div class="timer-name">Session Total</div><div class="timer-value">${fmt(lastSummary.duration)}</div></div><div class="timer-card"><div class="timer-name">Events</div><div class="timer-value">${lastSummary.events?.length||0}</div></div></div><div class="card" style="margin-top:12px"><strong>Responses</strong><div style="margin-top:6px">${res||'—'}</div><hr><strong>Observations</strong><div style="margin-top:6px">${obs||'—'}</div></div><div class="log">${(lastSummary.events||[]).slice().reverse().map(e=>`<div class="log-row"><div>${esc(e.clock)}</div><div><strong>${esc(e.type)}</strong></div><div class="detail">${esc(e.name)} ${e.value?`— ${esc(e.value)}`:''}</div></div>`).join('')}</div>`;
+
+ const obsCards=(snap.observations||[])
+   .filter(o=>o.enabled)
+   .map(o=>renderObservationSummaryCard(o,lastSummary.observations?.[o.id],lastSummary.duration))
+   .join('');
+
+ el.innerHTML=`
+   <div class="grid3">
+     <div class="timer-card"><div class="timer-name">Project</div><div style="font-size:1.2rem;font-weight:900">${esc(lastSummary.project)}</div></div>
+     <div class="timer-card"><div class="timer-name">Session Total</div><div class="timer-value">${fmt(lastSummary.duration)}</div></div>
+     <div class="timer-card"><div class="timer-name">Events</div><div class="timer-value">${lastSummary.events?.length||0}</div></div>
+   </div>
+
+   <div class="card" style="margin-top:12px">
+     <strong>Responses</strong>
+     <div style="margin-top:6px">${res||'—'}</div>
+   </div>
+
+   <div class="card" style="margin-top:12px">
+     <div class="section-head">
+       <strong>Observation Statistics</strong>
+       <span class="small muted">以 Observation interval 為統計時段</span>
+     </div>
+     <div style="display:grid;gap:9px;margin-top:8px">${obsCards||'<div class="muted">沒有 Observation。</div>'}</div>
+   </div>
+
+   <details class="card" style="margin-top:12px">
+     <summary style="cursor:pointer;font-weight:900">完整 Event Log · ${lastSummary.events?.length||0} events</summary>
+     <div class="log" style="margin-top:8px">
+       ${(lastSummary.events||[]).slice().reverse().map(e=>`<div class="log-row"><div>${esc(e.clock)}</div><div><strong>${esc(e.type)}</strong></div><div class="detail">${esc(e.name)} ${e.value?`— ${esc(e.value)}`:''}</div></div>`).join('')}
+     </div>
+   </details>`;
 }
 function exportCSV(){
  const src=lastSummary|| (runtime?{events:runtime.events,project:project.name}:null);if(!src)return;
@@ -1004,7 +1122,7 @@ function renderSetup(){
  $('#projectName').value=project.name;applyColors();
  if($('#soundEnabledSetup'))$('#soundEnabledSetup').checked=project.settings.soundEnabled!==false;
  $('#timerSetup').innerHTML=project.timers.map(t=>`<div class="setup-row"><div class="setup-grid"><label class="toggle"><input type="checkbox" data-ten="${t.id}" ${t.enabled?'checked':''}>啟用</label><label>名稱<input data-tn="${t.id}" type="text" value="${esc(t.name)}"></label><label>類型<select data-tt="${t.id}"><option value="session" ${t.type==='session'?'selected':''}>Session Stopwatch</option><option value="accumulation" ${t.type==='accumulation'?'selected':''}>Accumulation</option><option value="duration" ${t.type==='duration'?'selected':''}>Duration</option><option value="countdown" ${t.type==='countdown'?'selected':''}>Countdown</option></select></label><label>時間<input data-tv="${t.id}" type="text" value="${esc(fmt(parseTime(t.time)))}" placeholder="MM:SS（超過1小時可用 HH:MM:SS）"></label><button class="btn danger" data-td="${t.id}">刪除</button></div></div>`).join('')||'<div class="muted" style="margin-top:10px">未有 Timer。</div>';
- $('#situationSetup').innerHTML=project.situations.map(s=>`<div class="setup-row"><div class="grid3"><label>Situation 名稱<input data-sn="${s.id}" value="${esc(s.name)}"></label><label>顏色<div class="color-line"><input data-sc="${s.id}" type="color" value="${s.color}"><input data-sh="${s.id}" value="${s.color}"></div></label><div style="display:flex;align-items:end"><button class="btn danger" data-sd="${s.id}">刪除</button></div></div><div class="rule-table" style="margin-top:10px"><table><thead><tr><th>Timer</th><th>此 Situation 的動作</th></tr></thead><tbody>${project.timers.map(t=>`<tr><td>${esc(t.name)}${t.enabled?'':'（已關閉）'}</td><td><select data-rule-s="${s.id}" data-rule-t="${t.id}" ${t.enabled?'':'disabled'}><option value="ignore" ${(s.actions?.[t.id]||'ignore')==='ignore'?'selected':''}>Ignore</option><option value="run" ${s.actions?.[t.id]==='run'?'selected':''}>Run / Resume</option><option value="pause" ${s.actions?.[t.id]==='pause'?'selected':''}>Pause</option><option value="reset" ${s.actions?.[t.id]==='reset'?'selected':''}>Reset to full time</option></select></td></tr>`).join('')}</tbody></table></div></div>`).join('')||'<div class="muted" style="margin-top:10px">未有 Situation。</div>';
+ $('#situationSetup').innerHTML=project.situations.map(s=>`<div class="setup-row"><div class="grid3"><label>Situation 名稱<input data-sn="${s.id}" value="${esc(s.name)}"></label><label>顏色<div class="color-line"><input data-sc="${s.id}" type="color" value="${s.color}"><input data-sh="${s.id}" value="${s.color}"></div></label><div style="display:flex;align-items:end"><button class="btn danger" data-sd="${s.id}">刪除</button></div></div><div class="rule-table" style="margin-top:10px"><table><thead><tr><th>Timer</th><th>此 Situation 的動作</th></tr></thead><tbody>${project.timers.map(t=>`<tr><td>${esc(t.name)}${t.enabled?'':'（已關閉）'}</td><td><select data-rule-s="${s.id}" data-rule-t="${t.id}" ${t.enabled?'':'disabled'}><option value="ignore" ${(s.actions?.[t.id]||'ignore')==='ignore'?'selected':''}>Ignore</option><option value="run" ${s.actions?.[t.id]==='run'?'selected':''}>Run / Resume</option><option value="pause" ${s.actions?.[t.id]==='pause'?'selected':''}>Pause</option><option value="reset" ${s.actions?.[t.id]==='reset'?'selected':''}>Reset + Pause</option></select></td></tr>`).join('')}</tbody></table></div></div>`).join('')||'<div class="muted" style="margin-top:10px">未有 Situation。</div>';
  $('#responseSetup').innerHTML=project.responses.map(r=>`<div class="setup-row"><div class="grid4"><label>名稱<input data-rn="${r.id}" value="${esc(r.name)}"></label><label>模式<select data-rm="${r.id}"><option value="count" ${r.mode==='count'?'selected':''}>只計數 + Timestamp</option><option value="trigger" ${r.mode==='trigger'?'selected':''}>計數 + 切換 Situation</option></select></label><label>切換至<select data-rt="${r.id}" ${r.mode==='trigger'?'':'disabled'}><option value="">—</option>${project.situations.map(s=>`<option ${r.targetSituationName===s.name?'selected':''}>${esc(s.name)}</option>`).join('')}</select></label><label>顏色<div class="color-line"><input data-rc="${r.id}" type="color" value="${r.color}"><input data-rh="${r.id}" value="${r.color}"></div></label></div><button class="btn danger" style="margin-top:8px" data-rd="${r.id}">刪除</button></div>`).join('')||'<div class="muted" style="margin-top:10px">未有 Response。</div>';
  $('#observationSetup').innerHTML=project.observations.map(o=>`<div class="setup-row"><div class="grid4"><label class="toggle"><input type="checkbox" data-oen="${o.id}" ${o.enabled?'checked':''}>啟用</label><label>名稱<input data-on="${o.id}" value="${esc(o.name)}"></label><label>類型<select data-ot="${o.id}"><option value="counter" ${o.type==='counter'?'selected':''}>Event Counter</option><option value="category" ${o.type==='category'?'selected':''}>Category</option><option value="rating" ${o.type==='rating'?'selected':''}>Rating</option></select></label><label>Reminder interval<input data-oi="${o.id}" value="${esc(o.interval)}"></label></div><div class="grid2" style="margin-top:8px"><label>按鈕／選項（逗號分隔）<input data-oo="${o.id}" value="${esc((o.options||[]).join(', '))}"></label><label>顏色<div class="color-line"><input data-oc="${o.id}" type="color" value="${o.color}"><input data-oh="${o.id}" value="${o.color}"></div></label></div><button class="btn danger" style="margin-top:8px" data-od="${o.id}">刪除</button></div>`).join('')||'<div class="muted" style="margin-top:10px">未有 Observation。</div>';
  bindSetup();
