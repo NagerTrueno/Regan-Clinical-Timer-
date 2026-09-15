@@ -1,4 +1,4 @@
-const CACHE_NAME = 'regan-clinical-timer-v1-7';
+const CACHE_NAME = 'regan-clinical-timer-v1-8';
 const APP_SHELL = [
   './',
   './index.html',
@@ -25,14 +25,25 @@ self.addEventListener('activate', event => {
 
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
-  event.respondWith(
-    caches.match(event.request).then(cached => {
-      if (cached) return cached;
-      return fetch(event.request).then(response => {
+
+  // Navigation / HTML: network-first, so a newly deployed fixed version is picked up quickly.
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request).then(response => {
         const copy = response.clone();
-        caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
+        caches.open(CACHE_NAME).then(cache => cache.put('./index.html', copy));
         return response;
-      }).catch(() => caches.match('./index.html'));
-    })
+      }).catch(() => caches.match('./index.html'))
+    );
+    return;
+  }
+
+  // Static assets: cache-first for reliable offline use.
+  event.respondWith(
+    caches.match(event.request).then(cached => cached || fetch(event.request).then(response => {
+      const copy = response.clone();
+      caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
+      return response;
+    }))
   );
 });
