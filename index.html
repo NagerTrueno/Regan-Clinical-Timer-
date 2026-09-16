@@ -68,25 +68,21 @@ input[type=color]{width:52px;height:44px;padding:2px;border:2px solid var(--bord
 hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 .color-line{display:flex;gap:8px;align-items:center}
 .overdue{
-  position:relative !important;
-  overflow:hidden !important;
-  isolation:isolate;
-}
-.overdue::after{
-  content:"";
-  position:absolute;
-  inset:0;
-  border-radius:inherit;
-  pointer-events:none;
-  z-index:50;
-  background:rgba(255,214,0,.36);
-  animation:fullCellBackgroundFlash .68s steps(1,end) infinite;
+  animation:fullCellBackgroundFlash .82s ease-in-out infinite !important;
+  border-color:#d92d20 !important;
 }
 @keyframes fullCellBackgroundFlash{
-  0%,100%{background:rgba(255,218,38,.34)}
-  50%{background:rgba(255,66,66,.58)}
+  0%,100%{
+    background-color:#fff0a8;
+    box-shadow:0 0 0 2px rgba(255,188,0,.30),0 0 12px rgba(255,188,0,.20);
+  }
+  50%{
+    background-color:#ff8f8f;
+    box-shadow:0 0 0 4px rgba(217,45,32,.32),0 0 24px rgba(217,45,32,.34);
+  }
 }
-}
+/* Keep text and controls above the flashing background without an overlay. */
+.overdue > *{position:relative;z-index:1}
 .hidden{display:none!important}
 
 /* V1.3 compact treatment dashboard */
@@ -322,7 +318,7 @@ html,body,.app{max-width:100%;overflow-x:hidden}
 <body>
 <div class="app">
 <header>
-  <div class="brand"><h1>Regan Clinical & Research Timer</h1><p>多計時器 · 治療紀錄 · 行動研究 · V2.5 <span id="deviceModeLabel"></span></p></div>
+  <div class="brand"><h1>Regan Clinical & Research Timer</h1><p>多計時器 · 治療紀錄 · 行動研究 · V2.6 <span id="deviceModeLabel"></span></p></div>
   <div class="tabs">
     <button class="tab active" data-tab="session">Session</button>
     <button class="tab" data-tab="setup">Project Setup</button>
@@ -624,6 +620,26 @@ let audioCtx=null;
 let alertSounding=false;
 let audioPrimed=false;
 let activeStoredName=null;
+let uiInteractionActive=false;
+let uiRenderPending=false;
+let lastSessionUiRender=0;
+
+function safeRenderSession(force=false){
+ if(uiInteractionActive&&!force){uiRenderPending=true;return}
+ uiRenderPending=false;
+ lastSessionUiRender=Date.now();
+ renderSession();
+}
+function endUiInteraction(){
+ uiInteractionActive=false;
+ if(uiRenderPending)requestAnimationFrame(()=>safeRenderSession(true));
+}
+document.addEventListener('pointerdown',()=>{uiInteractionActive=true},{capture:true,passive:true});
+document.addEventListener('pointerup',endUiInteraction,{capture:true,passive:true});
+document.addEventListener('pointercancel',endUiInteraction,{capture:true,passive:true});
+document.addEventListener('touchstart',()=>{uiInteractionActive=true},{capture:true,passive:true});
+document.addEventListener('touchend',endUiInteraction,{capture:true,passive:true});
+document.addEventListener('touchcancel',endUiInteraction,{capture:true,passive:true});
 
 function applyColors(){
  const c=project.colors;
@@ -780,7 +796,8 @@ function startRuntime(){
  addEvent('Session','Started');
  if(currentSituation())addEvent('Situation',currentSituationName());
  $('#startBtn').textContent='Session 進行中';
- renderSession();
+ lastSessionUiRender=0;
+ safeRenderSession(true);
 }
 function setSituation(id,source='manual'){
  if(!runtime||!runtime.running||runtime.paused)return;
@@ -801,7 +818,7 @@ function setSituation(id,source='manual'){
  });
  runtime.situationId=id;
  addEvent('Situation',currentSituationName(),source);
- renderSession();
+ safeRenderSession(true);
 }
 function markUndo(kind,id,extra){runtime.undoStack.push({kind,id,extra});$('#undoBtn').disabled=false}
 function responseClick(id){
@@ -810,11 +827,11 @@ function responseClick(id){
  const cls=currentSituationName().includes('提示')?'Prompted':currentSituationName().includes('等待')?'Independent':'';
  addEvent('Response',r.name,cls||'Count');
  if(r.mode==='trigger'&&r.targetSituationName){const s=project.situations.find(x=>x.name===r.targetSituationName);if(s)setSituation(s.id,'response')}
- renderSession();
+ safeRenderSession(true);
 }
 function observationCounter(id){
  const o=project.observations.find(x=>x.id===id),rt=runtime.observations[id];if(!o||!rt)return;
- rt.total++;rt.segment++;rt.alertUntil=0;markUndo('observationCounter',id);addEvent('Observation',o.name,'+1');renderSession();
+ rt.total++;rt.segment++;rt.alertUntil=0;markUndo('observationCounter',id);addEvent('Observation',o.name,'+1');safeRenderSession(true);
 }
 function observationCategory(id,value){
  const o=project.observations.find(x=>x.id===id),rt=runtime.observations[id];if(!o||!rt)return;
@@ -834,7 +851,7 @@ function observationCategory(id,value){
  rt.alertUntil=0;
  markUndo('observationCategory',id,{value,intervalIndex});
  addEvent('Observation',o.name,`${value} · Segment ${intervalIndex}`);
- renderSession();
+ safeRenderSession(true);
 }
 function undo(){
  if(!runtime||!runtime.undoStack.length)return;
@@ -855,18 +872,19 @@ function undo(){
 function tick(){
  if(runtime&&runtime.running&&!runtime.paused&&!runtime.ended){
   const now=Date.now(),dt=Math.min(30,(now-runtime.lastTick)/1000);runtime.lastTick=now;runtime.sessionSec+=dt;
+  let uiStateChanged=false;
   project.timers.filter(t=>t.enabled).forEach(t=>{
    const rt=runtime.timers[t.id],action=rt.resetHold?'pause':((t.type==='session'||t.alwaysRun)?'run':timerAction(t.id));
    if(action==='run'){
     if(t.type==='session')rt.elapsed+=dt;
     else if(t.type==='accumulation')rt.elapsed+=dt;
     else if(t.type==='duration')rt.elapsed+=dt;
-    else if(t.type==='interval'&&!rt.due){rt.cycle+=dt;if(rt.cycle>=parseTime(t.time)&&parseTime(t.time)>0){rt.cycle=parseTime(t.time);rt.due=true;addEvent('Reminder',t.name,'Due');beep(t.soundEnabled)}}
-    else if(t.type==='countdown'&&!rt.due){rt.remaining=Math.max(0,rt.remaining-dt);if(rt.remaining<=0){rt.due=true;addEvent('Reminder',t.name,'Due');beep(t.soundEnabled)}}
-    else if(t.type==='independent'&&!rt.due){rt.cycle+=dt;if(rt.cycle>=parseTime(t.time)&&parseTime(t.time)>0){rt.cycle=parseTime(t.time);rt.due=true;addEvent('Reminder',t.name,'Due');beep(t.soundEnabled)}}
+    else if(t.type==='interval'&&!rt.due){rt.cycle+=dt;if(rt.cycle>=parseTime(t.time)&&parseTime(t.time)>0){rt.cycle=parseTime(t.time);rt.due=true;uiStateChanged=true;addEvent('Reminder',t.name,'Due');beep(t.soundEnabled)}}
+    else if(t.type==='countdown'&&!rt.due){rt.remaining=Math.max(0,rt.remaining-dt);if(rt.remaining<=0){rt.due=true;uiStateChanged=true;addEvent('Reminder',t.name,'Due');beep(t.soundEnabled)}}
+    else if(t.type==='independent'&&!rt.due){rt.cycle+=dt;if(rt.cycle>=parseTime(t.time)&&parseTime(t.time)>0){rt.cycle=parseTime(t.time);rt.due=true;uiStateChanged=true;addEvent('Reminder',t.name,'Due');beep(t.soundEnabled)}}
    }
    const target=parseTime(t.time);
-   if((t.type==='accumulation'||t.type==='duration')&&target>0&&!rt.due&&rt.elapsed>=target){rt.due=true;addEvent('Timer target',t.name,'Reached');beep(t.soundEnabled)}
+   if((t.type==='accumulation'||t.type==='duration')&&target>0&&!rt.due&&rt.elapsed>=target){rt.due=true;uiStateChanged=true;addEvent('Timer target',t.name,'Reached');beep(t.soundEnabled)}
   });
   project.observations.filter(o=>o.enabled).forEach(o=>{
    const rt=runtime.observations[o.id],int=parseTime(o.interval);
@@ -881,6 +899,7 @@ function tick(){
        rt.cycle-=int;
        rt.intervalIndex=(rt.intervalIndex||1)+1;
        rt.alertUntil=Date.now()+7000;
+       uiStateChanged=true;
        beep(o.soundEnabled);
       }
     }else{
@@ -895,13 +914,18 @@ function tick(){
        rt.currentValue='';
        rt.due=true;
        rt.alertUntil=Date.now()+7000;
+       uiStateChanged=true;
        addEvent('Reminder',o.name,`New segment ${rt.intervalIndex}`);
        beep(o.soundEnabled);
       }
     }
    }
   });
-  renderSession();
+  if(uiStateChanged){
+   safeRenderSession();
+  }else if(now-lastSessionUiRender>=1000){
+   safeRenderSession();
+  }
  } else if(runtime){runtime.lastTick=Date.now()}
  requestAnimationFrame(tick);
 }
