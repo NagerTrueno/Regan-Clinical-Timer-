@@ -306,7 +306,7 @@ html,body,.app{max-width:100%;overflow-x:hidden}
 }
 
 
-/* V2.7 — compact top controls */
+/* V2.8 — compact top controls */
 .app{
   padding-top:8px;
 }
@@ -414,25 +414,33 @@ html,body,.app{max-width:100%;overflow-x:hidden}
   padding:3px;
   font-size:.92rem;
 }
-#sessionNotice:empty{
-  display:none;
+#sessionNotice{
+  display:block;
+  min-height:30px;
+  height:30px;
+  margin:0 0 6px;
 }
 #sessionNotice .notice{
-  position:fixed;
-  z-index:1000;
-  top:48px;
-  left:50%;
-  transform:translateX(-50%);
-  width:min(720px,calc(100vw - 24px));
+  position:static;
+  width:100%;
+  height:30px;
   box-sizing:border-box;
   margin:0;
-  padding:6px 10px;
-  border-radius:10px;
-  font-size:.78rem;
-  line-height:1.15;
-  text-align:center;
-  box-shadow:0 5px 18px rgba(0,0,0,.14);
-  pointer-events:none;
+  padding:4px 9px;
+  border-radius:9px;
+  font-size:.75rem;
+  line-height:20px;
+  text-align:left;
+  box-shadow:none;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+#sessionNotice .notice.idle{
+  border-color:#cbd6e2;
+  background:#f5f8fb;
+  color:var(--muted);
+  font-weight:700;
 }
 #sessionView .session-dashboard{
   margin-top:0;
@@ -460,6 +468,69 @@ html,body,.app{max-width:100%;overflow-x:hidden}
   }
 }
 
+
+/* V2.8 — card-width-aware controls */
+#sessionView .situation-panel,
+#sessionView .response-panel{
+  container-type:inline-size;
+}
+
+/* Situation: never allow intrinsic button/text width to push outside its card. */
+#sessionView .situation-grid{
+  grid-template-columns:repeat(auto-fit,minmax(125px,1fr));
+  width:100%;
+  min-width:0;
+}
+#sessionView .situation-grid .sit-btn{
+  box-sizing:border-box;
+  width:100%;
+  min-width:0;
+  max-width:100%;
+  white-space:normal;
+  overflow-wrap:anywhere;
+  word-break:break-word;
+}
+
+/* Student responses: two buttons per row is the preferred layout. */
+#sessionView .response-grid{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  width:100%;
+  min-width:0;
+}
+#sessionView .response-grid .response-btn{
+  box-sizing:border-box;
+  width:100%;
+  min-width:0;
+  max-width:100%;
+  white-space:normal;
+  overflow-wrap:anywhere;
+  word-break:break-word;
+}
+
+/* If the actual card itself becomes very narrow, fall back to one column. */
+@container (max-width: 285px){
+  #sessionView .situation-panel .situation-grid{
+    grid-template-columns:1fr!important;
+  }
+}
+@container (max-width: 310px){
+  #sessionView .response-panel .response-grid{
+    grid-template-columns:1fr!important;
+  }
+}
+
+/* Fallback for browsers without container-query support. */
+@supports not (container-type:inline-size){
+  @media(max-width:430px){
+    #sessionView .response-grid{
+      grid-template-columns:1fr!important;
+    }
+    #sessionView .situation-grid{
+      grid-template-columns:1fr!important;
+    }
+  }
+}
+
 </style>
 
 <link rel="manifest" href="manifest.webmanifest">
@@ -474,7 +545,7 @@ html,body,.app{max-width:100%;overflow-x:hidden}
 <div class="app">
 <header class="compact-app-header">
   <div class="brand compact-brand">
-    <h1>Clinical Timer <span class="version-chip">V2.7</span></h1>
+    <h1>Clinical Timer <span class="version-chip">V2.8</span></h1>
     <span id="deviceModeLabel" class="device-chip"></span>
   </div>
   <div class="tabs compact-tabs">
@@ -506,7 +577,7 @@ html,body,.app{max-width:100%;overflow-x:hidden}
     <div class="session-left">
       <div id="timerGrid" class="session-timer-grid"></div>
 
-      <div class="card">
+      <div class="card situation-panel">
         <div class="section-head"><h3>🎛 Situation</h3><span class="small muted">選擇當下情況</span></div>
         <div id="situationButtons" class="situation-grid" style="margin-top:7px"></div>
       </div>
@@ -1262,7 +1333,7 @@ function renderSession(){
    return (rt?.due&&!rt?.recordedThisInterval)||(rt?.alertUntil&&Date.now()<rt.alertUntil);
   }).forEach(o=>notices.push(`Observation 提示：${o.name}`));
  }
- $('#sessionNotice').innerHTML=notices.length?`<div class="notice">${notices.map(esc).join('　｜　')}</div>`:'';
+ $('#sessionNotice').innerHTML=notices.length?`<div class="notice">通知：${notices.map(esc).join('　｜　')}</div>`:'<div class="notice idle">通知：—</div>';
 }
 function renderLog(){
  const el=$('#eventLog');if(!runtime){el.innerHTML='<div class="muted" style="padding:10px 0">尚未開始 Session。</div>';$('#eventCount').textContent='0 events';return}
@@ -1328,7 +1399,7 @@ function endSession(){
  $('#startBtn').textContent='開始 Session';
  renderSession();
  renderSummary();
- $('#sessionNotice').innerHTML='<div class="notice">Session 已結束並保存到 Session History；所有計時器及即時計數已重設。</div>';
+ $('#sessionNotice').innerHTML='<div class="notice">通知：Session 已結束並保存到 Session History；所有計時器及即時計數已重設。</div>';
 }
 
 function observationTotalSegments(o,duration){
