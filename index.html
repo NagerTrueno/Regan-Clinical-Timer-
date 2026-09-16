@@ -305,6 +305,161 @@ html,body,.app{max-width:100%;overflow-x:hidden}
   #sessionView .timer-note{font-size:.66rem}
 }
 
+
+/* V2.7 — compact top controls */
+.app{
+  padding-top:8px;
+}
+.compact-app-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  flex-wrap:nowrap;
+  gap:8px;
+  margin-bottom:6px;
+  min-height:34px;
+}
+.compact-brand{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  min-width:0;
+  white-space:nowrap;
+}
+.compact-brand h1{
+  font-size:.98rem;
+  line-height:1;
+  margin:0;
+  white-space:nowrap;
+}
+.version-chip,.device-chip{
+  display:inline-block;
+  font-size:.66rem;
+  font-weight:800;
+  color:var(--muted);
+}
+.version-chip{
+  background:#e8eef5;
+  border-radius:999px;
+  padding:2px 5px;
+  vertical-align:middle;
+}
+.compact-tabs{
+  gap:4px;
+  flex-wrap:nowrap;
+}
+.compact-tabs .tab{
+  min-height:32px;
+  padding:4px 8px;
+  border-radius:9px;
+  font-size:.76rem;
+  line-height:1.1;
+  white-space:nowrap;
+}
+#sessionView .session-head-card{
+  display:grid;
+  grid-template-columns:minmax(210px,1fr) auto;
+  align-items:center;
+  gap:6px;
+  padding:5px 7px;
+  margin-bottom:6px;
+  border-radius:13px;
+}
+#sessionView .session-head-card .section-head{
+  flex-wrap:nowrap;
+  gap:10px;
+  min-width:0;
+}
+#sessionView .session-head-card .section-head>div{
+  min-width:0;
+}
+#sessionView .session-head-card .muted.small{
+  font-size:.62rem;
+  line-height:1;
+}
+#sessionView .session-head-card h2{
+  font-size:.92rem;
+  line-height:1.05;
+  margin:1px 0 0;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+#sessionView #currentSituation{
+  font-size:.92rem!important;
+  line-height:1.05;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  max-width:160px;
+}
+#sessionView .session-head-card .actions{
+  margin:0!important;
+  gap:4px;
+  flex-wrap:nowrap;
+  justify-content:flex-end;
+}
+#sessionView .session-head-card .btn{
+  min-height:32px;
+  height:32px;
+  padding:3px 8px;
+  border-radius:9px;
+  font-size:.74rem;
+  line-height:1;
+  white-space:nowrap;
+}
+#sessionView #soundToggleBtn{
+  min-width:34px;
+  width:34px;
+  padding:3px;
+  font-size:.92rem;
+}
+#sessionNotice:empty{
+  display:none;
+}
+#sessionNotice .notice{
+  position:fixed;
+  z-index:1000;
+  top:48px;
+  left:50%;
+  transform:translateX(-50%);
+  width:min(720px,calc(100vw - 24px));
+  box-sizing:border-box;
+  margin:0;
+  padding:6px 10px;
+  border-radius:10px;
+  font-size:.78rem;
+  line-height:1.15;
+  text-align:center;
+  box-shadow:0 5px 18px rgba(0,0,0,.14);
+  pointer-events:none;
+}
+#sessionView .session-dashboard{
+  margin-top:0;
+}
+@media(max-width:780px){
+  .compact-brand h1{font-size:.88rem}
+  .device-chip{display:none}
+  .compact-tabs .tab{padding:4px 6px;font-size:.7rem}
+  #sessionView .session-head-card{
+    grid-template-columns:1fr;
+    gap:4px;
+  }
+  #sessionView .session-head-card .actions{
+    justify-content:flex-start;
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+  }
+}
+@media(max-width:520px){
+  .compact-brand h1{font-size:.78rem}
+  .version-chip{display:none}
+  .compact-tabs .tab{padding:4px 5px;font-size:.66rem}
+  #sessionView .session-head-card .btn{
+    min-height:30px;height:30px;padding:3px 7px;font-size:.7rem;
+  }
+}
+
 </style>
 
 <link rel="manifest" href="manifest.webmanifest">
@@ -317,12 +472,15 @@ html,body,.app{max-width:100%;overflow-x:hidden}
 </head>
 <body>
 <div class="app">
-<header>
-  <div class="brand"><h1>Regan Clinical & Research Timer</h1><p>多計時器 · 治療紀錄 · 行動研究 · V2.6 <span id="deviceModeLabel"></span></p></div>
-  <div class="tabs">
+<header class="compact-app-header">
+  <div class="brand compact-brand">
+    <h1>Clinical Timer <span class="version-chip">V2.7</span></h1>
+    <span id="deviceModeLabel" class="device-chip"></span>
+  </div>
+  <div class="tabs compact-tabs">
     <button class="tab active" data-tab="session">Session</button>
-    <button class="tab" data-tab="setup">Project Setup</button>
-    <button class="tab" data-tab="history">Session Summary</button>
+    <button class="tab" data-tab="setup">設定</button>
+    <button class="tab" data-tab="history">Summary</button>
   </div>
 </header>
 
@@ -336,9 +494,9 @@ html,body,.app{max-width:100%;overflow-x:hidden}
       <div style="text-align:right"><div class="muted small">目前 Situation</div><div id="currentSituation" style="font-size:1.22rem;font-weight:900">尚未開始</div></div>
     </div>
     <div class="actions">
-      <button id="startBtn" class="btn primary">開始 Session</button>
-      <button id="pauseBtn" class="btn" disabled>暫停全部</button>
-      <button id="endBtn" class="btn danger" disabled>結束 Session</button>
+      <button id="startBtn" class="btn primary">開始</button>
+      <button id="pauseBtn" class="btn" disabled>暫停</button>
+      <button id="endBtn" class="btn danger" disabled>結束</button>
       <button id="undoBtn" class="btn" disabled>Undo</button>
       <button id="soundToggleBtn" class="btn">🔊 聲效開</button>
     </div>
@@ -661,8 +819,12 @@ function applyAlertAudioSession(){
  }catch(e){}
 }
 function restoreMixingAudioSession(){
+ // Important on iPad: repeatedly switching playback -> ambient after every
+ // alert can leave Web Audio interrupted/silent. In silentCompatible mode,
+ // keep the playback session armed for the whole working session.
  try{
-  if(navigator.audioSession && 'type' in navigator.audioSession){
+  if(project?.settings?.soundMode!=='silentCompatible' &&
+     navigator.audioSession && 'type' in navigator.audioSession){
    navigator.audioSession.type='ambient';
   }
  }catch(e){}
@@ -670,32 +832,102 @@ function restoreMixingAudioSession(){
 
 let activeAlertNodes=[];
 let alertStopTimer=null;
+let alertStartedAt=0;
+let audioNeedsRearm=true;
+let lastAudioArmAt=0;
 
-async function unlockAudio(){
+async function closeAudioContextQuietly(){
+ if(!audioCtx)return;
+ try{
+  if(audioCtx.state!=='closed')await audioCtx.close();
+ }catch(e){}
+ audioCtx=null;
+ audioPrimed=false;
+}
+
+async function makeAudioContext(){
+ try{
+  const Ctx=window.AudioContext||window.webkitAudioContext;
+  if(!Ctx)return false;
+  audioCtx=new Ctx({latencyHint:'interactive'});
+  audioCtx.onstatechange=()=>{
+   const st=audioCtx?.state;
+   if(st!=='running'){
+    audioPrimed=false;
+    audioNeedsRearm=true;
+   }else{
+    audioPrimed=true;
+   }
+  };
+  return true;
+ }catch(e){
+  audioCtx=null;
+  return false;
+ }
+}
+
+async function unlockAudio(forceRecreate=false){
  if(project?.settings?.soundEnabled===false)return false;
  try{
   applyAlertAudioSession();
-  if(!audioCtx || audioCtx.state==='closed'){
-   audioCtx=new (window.AudioContext||window.webkitAudioContext)({latencyHint:'interactive'});
-  }
-  if(audioCtx.state==='suspended')await audioCtx.resume();
 
-  // Tiny silent pulse during a real user gesture helps iOS keep Web Audio
-  // unlocked for timer events that happen later without a tap.
+  // "interrupted" is seen on some iOS/WebKit builds after audio-session,
+  // silent-switch or app-state changes. Recreate the context when needed.
+  const badState=audioCtx && !['running','suspended'].includes(audioCtx.state);
+  if(forceRecreate || !audioCtx || audioCtx.state==='closed' || badState){
+   if(audioCtx && !alertSounding)await closeAudioContextQuietly();
+   if(!audioCtx || audioCtx.state==='closed'){
+    if(!await makeAudioContext())return false;
+   }
+  }
+
+  if(audioCtx.state!=='running'){
+   try{await audioCtx.resume()}catch(e){}
+  }
+
+  // If resume did not recover it, make one fresh attempt.
+  if(audioCtx.state!=='running' && !alertSounding){
+   await closeAudioContextQuietly();
+   applyAlertAudioSession();
+   if(!await makeAudioContext())return false;
+   try{await audioCtx.resume()}catch(e){}
+  }
+
+  if(audioCtx.state!=='running'){
+   audioPrimed=false;
+   audioNeedsRearm=true;
+   return false;
+  }
+
+  // Very short near-silent pulse while inside a user gesture.
   const o=audioCtx.createOscillator(),g=audioCtx.createGain();
   g.gain.value=0.00001;
   o.connect(g);g.connect(audioCtx.destination);
-  o.start();o.stop(audioCtx.currentTime+0.015);
-  audioPrimed=audioCtx.state==='running';
-  return audioPrimed;
+  o.start();o.stop(audioCtx.currentTime+0.012);
+
+  audioPrimed=true;
+  audioNeedsRearm=false;
+  lastAudioArmAt=Date.now();
+  return true;
  }catch(e){
   audioPrimed=false;
+  audioNeedsRearm=true;
   return false;
  }
 }
 
 async function primeAlertAudio(){
- return unlockAudio();
+ return unlockAudio(audioNeedsRearm);
+}
+
+function finishAlertSound(){
+ if(alertStopTimer){clearTimeout(alertStopTimer);alertStopTimer=null}
+ activeAlertNodes.forEach(n=>{try{n.disconnect()}catch(e){}});
+ activeAlertNodes=[];
+ alertSounding=false;
+ alertStartedAt=0;
+ restoreMixingAudioSession();
+ renderSoundButton();
 }
 
 function stopAlertSound(){
@@ -703,25 +935,39 @@ function stopAlertSound(){
  activeAlertNodes.forEach(n=>{try{n.stop()}catch(e){};try{n.disconnect()}catch(e){}});
  activeAlertNodes=[];
  alertSounding=false;
+ alertStartedAt=0;
  restoreMixingAudioSession();
  renderSoundButton();
 }
 
 async function startAlertSound(){
  if(project?.settings?.soundEnabled===false)return;
+
+ // Recover from a stale alert flag if iOS throttled/paused the cleanup timer.
+ if(alertSounding && alertStartedAt && Date.now()-alertStartedAt>6500){
+  stopAlertSound();
+ }
  if(alertSounding)return;
- const ok=await unlockAudio();
+
+ const ok=await unlockAudio(audioNeedsRearm || audioCtx?.state!=='running');
  if(!ok||!audioCtx)return;
 
  try{
+  applyAlertAudioSession();
+  if(audioCtx.state!=='running'){
+   try{await audioCtx.resume()}catch(e){}
+  }
+  if(audioCtx.state!=='running'){
+   audioNeedsRearm=true;
+   return;
+  }
+
   alertSounding=true;
+  alertStartedAt=Date.now();
   renderSoundButton();
   const base=audioCtx.currentTime+0.035;
 
-  // ~4.2 second repeating two-note chime. In videoFriendly mode this uses
-  // ambient mixing and respects the iPad silent switch. In silentCompatible
-  // mode the Audio Session is temporarily set to playback so the alert can
-  // sound through silent mode; iPadOS may then interrupt/duck other media.
+  // ~4.2 second two-note chime.
   const notes=[
    [0.00,820,.30],[0.42,1100,.30],
    [0.94,820,.30],[1.36,1100,.30],
@@ -729,6 +975,8 @@ async function startAlertSound(){
    [2.82,820,.30],[3.24,1100,.30],
    [3.76,920,.34],[4.12,1320,.34]
   ];
+
+  let lastNode=null;
   notes.forEach(([offset,freq,dur])=>{
    const o=audioCtx.createOscillator();
    const g=audioCtx.createGain();
@@ -741,16 +989,18 @@ async function startAlertSound(){
    o.connect(g);g.connect(audioCtx.destination);
    o.start(base+offset);o.stop(base+offset+dur+.02);
    activeAlertNodes.push(o);
+   lastNode=o;
   });
 
-  alertStopTimer=setTimeout(()=>{
-   activeAlertNodes=[];
-   alertSounding=false;
-   alertStopTimer=null;
-   restoreMixingAudioSession();
-   renderSoundButton();
-  },4650);
+  // WebAudio onended + timeout: two independent cleanup paths.
+  if(lastNode){
+   lastNode.onended=()=>{
+    if(alertSounding && Date.now()-alertStartedAt>3500)finishAlertSound();
+   };
+  }
+  alertStopTimer=setTimeout(()=>finishAlertSound(),5000);
  }catch(e){
+  audioNeedsRearm=true;
   stopAlertSound();
  }
 }
@@ -765,8 +1015,10 @@ function beep(sourceSoundEnabled=true){
 function renderSoundButton(){
  const b=$('#soundToggleBtn');if(!b)return;
  const enabled=project?.settings?.soundEnabled!==false;
- const mode=project?.settings?.soundMode==='silentCompatible'?'靜音可響':'影片優先';
- b.textContent=!enabled?'🔇 全部聲效關':alertSounding?`🔔 提示聲播放中 · ${mode}`:`🔊 全部聲效開 · ${mode}`;
+ const mode=project?.settings?.soundMode==='silentCompatible'?'靜音模式仍響':'影片優先';
+ b.textContent=!enabled?'🔇':alertSounding?'🔔':'🔊';
+ b.title=!enabled?'全部聲效關':`全部聲效開 · ${mode}`;
+ b.setAttribute('aria-label',b.title);
  b.classList.toggle('alerting',!!alertSounding);
  b.setAttribute('aria-pressed',enabled?'true':'false');
 }
@@ -973,7 +1225,7 @@ function renderSession(){
  renderSoundButton();
  $('#currentSituation').textContent=runtime?(runtime.paused?'全部暫停':currentSituationName()||'無 Situation'):'尚未開始';
  $('#startBtn').disabled=!!runtime?.running;$('#pauseBtn').disabled=!runtime?.running;$('#endBtn').disabled=!runtime?.running;
- $('#pauseBtn').textContent=runtime?.paused?'繼續全部':'暫停全部';
+ $('#pauseBtn').textContent=runtime?.paused?'繼續':'暫停';
  $('#timerGrid').innerHTML=project.timers.filter(t=>t.enabled).map(t=>{
   const d=timerDisplay(t);
   const due=runtime?.timers[t.id]?.due?' overdue':'';
@@ -1296,7 +1548,15 @@ async function importFullBackup(file){
      historySet([...byId.values()].sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,200));
    }
    
-document.addEventListener('visibilitychange',()=>{if(document.hidden)stopAlertSound()});
+document.addEventListener('visibilitychange',()=>{
+ if(document.hidden){
+  stopAlertSound();
+  audioNeedsRearm=true;
+ }else{
+  applyAlertAudioSession();
+  if(project?.settings?.soundEnabled!==false)void unlockAudio(false);
+ }
+});
 
 refreshProjectList();refreshHistoryList();
    $('#setupMsg').textContent=`Backup 已匯入：${Object.keys(data.projects).length} 個 Project。`;
@@ -1311,46 +1571,69 @@ function showTab(name){
  if(name==='setup')renderSetup();if(name==='history'){refreshHistoryList();renderSummary();}
 }
 $$('.tab').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
-$('#startBtn').onclick=async()=>{await unlockAudio();startRuntime()};
+$('#startBtn').onclick=async()=>{audioNeedsRearm=true;await unlockAudio(true);startRuntime()};
 
-function setSoundMode(mode){
+async function setSoundMode(mode){
  project=ensureProjectDefaults(project);
  project.settings.soundMode=['videoFriendly','silentCompatible'].includes(mode)?mode:'videoFriendly';
  if($('#soundModeSetup'))$('#soundModeSetup').value=project.settings.soundMode;
  if(alertSounding)stopAlertSound();
+ audioNeedsRearm=true;
  applyAlertAudioSession();
+ await unlockAudio(true);
  autoSaveCurrent();
- renderSession();
+ safeRenderSession(true);
 }
 
-function setSoundEnabled(enabled){
+async function setSoundEnabled(enabled){
  project=ensureProjectDefaults(project);
  project.settings.soundEnabled=!!enabled;
- if(!project.settings.soundEnabled)stopAlertSound();
- else{
-  unlockAudio();
+ if(!project.settings.soundEnabled){
+  stopAlertSound();
+ }else{
+  audioNeedsRearm=true;
+  await unlockAudio(true);
  }
  if($('#soundEnabledSetup'))$('#soundEnabledSetup').checked=project.settings.soundEnabled;
  autoSaveCurrent();
- renderSession();
+ safeRenderSession(true);
 }
 
 $('#pauseBtn').onclick=()=>{if(!runtime)return;stopAlertSound();runtime.paused=!runtime.paused;runtime.lastTick=Date.now();addEvent('Session',runtime.paused?'Paused':'Resumed');renderSession()};
 $('#endBtn').onclick=endSession;$('#undoBtn').onclick=undo;
 $('#soundToggleBtn').onclick=()=>setSoundEnabled(project?.settings?.soundEnabled===false);
-$('#soundEnabledSetup').onchange=e=>setSoundEnabled(e.target.checked);
-$('#soundModeSetup').onchange=e=>setSoundMode(e.target.value);
+$('#soundEnabledSetup').onchange=e=>{void setSoundEnabled(e.target.checked)};
+$('#soundModeSetup').onchange=e=>{void setSoundMode(e.target.value)};
 $('#testSoundBtn').onclick=async()=>{
- if(project?.settings?.soundEnabled===false)setSoundEnabled(true);
+ if(project?.settings?.soundEnabled===false)await setSoundEnabled(true);
+ audioNeedsRearm=true;
  applyAlertAudioSession();
- await unlockAudio();
- startAlertSound();
+ await unlockAudio(true);
+ await startAlertSound();
 };
 
 // Any normal user interaction can refresh the iOS Web Audio permission.
+// In silent-compatible mode we also re-assert the playback audio session.
+// We only recreate the context when its state is unhealthy.
 document.addEventListener('pointerdown',()=>{
- if(project?.settings?.soundEnabled!==false)unlockAudio();
+ if(project?.settings?.soundEnabled===false||alertSounding)return;
+ applyAlertAudioSession();
+ const state=audioCtx?.state;
+ const unhealthy=!audioCtx || !['running','suspended'].includes(state) || audioNeedsRearm;
+ void unlockAudio(unhealthy);
 },{passive:true});
+
+window.addEventListener('pageshow',()=>{
+ audioNeedsRearm=true;
+ if(project?.settings?.soundEnabled!==false)void unlockAudio(false);
+});
+window.addEventListener('focus',()=>{
+ applyAlertAudioSession();
+ if(project?.settings?.soundEnabled!==false && audioCtx?.state!=='running'){
+  audioNeedsRearm=true;
+  void unlockAudio(false);
+ }
+});
 
 document.addEventListener('click',e=>{const s=e.target.closest('[data-sit]');if(s)setSituation(s.dataset.sit);const r=e.target.closest('[data-res]');if(r)responseClick(r.dataset.res);const c=e.target.closest('[data-obs-counter]');if(c)observationCounter(c.dataset.obsCounter);const k=e.target.closest('[data-obs-cat]');if(k)observationCategory(k.dataset.obsCat,k.dataset.value)});
 $('#addTimerBtn').onclick=()=>{const t={id:uid('t'),name:'New Timer',type:'countdown',enabled:true,time:'00:05:00',soundEnabled:true};project.timers.push(t);project.situations.forEach(s=>{s.actions=s.actions||{};s.actions[t.id]='ignore'});renderSetup();autoSaveCurrent()};
