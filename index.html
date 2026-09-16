@@ -306,7 +306,7 @@ html,body,.app{max-width:100%;overflow-x:hidden}
 }
 
 
-/* V2.9 — compact top controls */
+/* V2.10 — compact top controls */
 .app{
   padding-top:8px;
 }
@@ -469,7 +469,7 @@ html,body,.app{max-width:100%;overflow-x:hidden}
 }
 
 
-/* V2.9 — card-width-aware controls */
+/* V2.10 — card-width-aware controls */
 #sessionView .situation-panel,
 #sessionView .response-panel{
   container-type:inline-size;
@@ -532,7 +532,7 @@ html,body,.app{max-width:100%;overflow-x:hidden}
 }
 
 
-/* V2.9 — response priority + centered adaptive Event Counter */
+/* V2.10 — response priority + centered adaptive Event Counter */
 
 /* Student Response:
    Keep 2 columns for almost all practical phone/iPad widths.
@@ -566,7 +566,7 @@ html,body,.app{max-width:100%;overflow-x:hidden}
 }
 
 /* V2.8 changed to 1 column at 310px, which was too early in iPad Split View.
-   V2.9 keeps two columns down to a much smaller real card width. */
+   V2.10 keeps two columns down to a much smaller real card width. */
 @container (max-width: 220px){
   #sessionView .response-panel .response-grid{
     grid-template-columns:1fr!important;
@@ -627,6 +627,73 @@ html,body,.app{max-width:100%;overflow-x:hidden}
   }
 }
 
+
+/* V2.10 — version and device are permanently visible */
+.compact-brand{
+  gap:5px!important;
+  min-width:max-content!important;
+}
+.compact-brand h1{
+  display:flex;
+  align-items:center;
+  gap:5px;
+  min-width:0;
+}
+.version-chip,
+.device-chip{
+  display:inline-flex!important;
+  align-items:center;
+  justify-content:center;
+  flex:0 0 auto;
+  white-space:nowrap;
+  visibility:visible!important;
+  opacity:1!important;
+  line-height:1;
+}
+.version-chip{
+  font-size:.65rem!important;
+  padding:3px 6px!important;
+}
+.device-chip{
+  font-size:.65rem!important;
+  padding:3px 6px;
+  border-radius:999px;
+  background:#eef4fa;
+  border:1px solid #d6e0ea;
+  color:#41536a!important;
+}
+@media(max-width:780px){
+  .device-chip{
+    display:inline-flex!important;
+  }
+}
+@media(max-width:520px){
+  .version-chip{
+    display:inline-flex!important;
+  }
+  .compact-brand{
+    gap:3px!important;
+  }
+  .compact-brand h1{
+    font-size:.72rem!important;
+    gap:3px;
+  }
+  .version-chip,
+  .device-chip{
+    font-size:.58rem!important;
+    padding:2px 4px!important;
+  }
+}
+@media(max-width:380px){
+  .compact-brand h1{
+    font-size:.66rem!important;
+  }
+  .version-chip,
+  .device-chip{
+    font-size:.54rem!important;
+  }
+}
+
 </style>
 
 <link rel="manifest" href="manifest.webmanifest">
@@ -641,7 +708,7 @@ html,body,.app{max-width:100%;overflow-x:hidden}
 <div class="app">
 <header class="compact-app-header">
   <div class="brand compact-brand">
-    <h1>Clinical Timer <span class="version-chip">V2.9</span></h1>
+    <h1>Clinical Timer <span class="version-chip">V2.10</span></h1>
     <span id="deviceModeLabel" class="device-chip"></span>
   </div>
   <div class="tabs compact-tabs">
@@ -827,7 +894,7 @@ function applyDeviceClass(){
   const mode=isIPhone?'device-iphone':(isIPad?'device-ipad':'device-desktop');
   document.body.classList.add(mode);
   const label=document.getElementById('deviceModeLabel');
-  if(label)label.textContent=mode==='device-iphone'?'· iPhone layout':(mode==='device-ipad'?'· iPad layout':'· Desktop layout');
+  if(label)label.textContent=mode==='device-iphone'?'iPhone':(mode==='device-ipad'?'iPad':'Desktop');
 }
 applyDeviceClass();
 window.addEventListener('resize',applyDeviceClass);
