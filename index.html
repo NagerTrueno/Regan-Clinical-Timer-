@@ -306,7 +306,7 @@ html,body,.app{max-width:100%;overflow-x:hidden}
 }
 
 
-/* V2.11 — compact top controls */
+/* V2.12 — compact top controls */
 .app{
   padding-top:8px;
 }
@@ -469,7 +469,7 @@ html,body,.app{max-width:100%;overflow-x:hidden}
 }
 
 
-/* V2.11 — card-width-aware controls */
+/* V2.12 — card-width-aware controls */
 #sessionView .situation-panel,
 #sessionView .response-panel{
   container-type:inline-size;
@@ -532,7 +532,7 @@ html,body,.app{max-width:100%;overflow-x:hidden}
 }
 
 
-/* V2.11 — response priority + centered adaptive Event Counter */
+/* V2.12 — response priority + centered adaptive Event Counter */
 
 /* Student Response:
    Keep 2 columns for almost all practical phone/iPad widths.
@@ -566,7 +566,7 @@ html,body,.app{max-width:100%;overflow-x:hidden}
 }
 
 /* V2.8 changed to 1 column at 310px, which was too early in iPad Split View.
-   V2.11 keeps two columns down to a much smaller real card width. */
+   V2.12 keeps two columns down to a much smaller real card width. */
 @container (max-width: 220px){
   #sessionView .response-panel .response-grid{
     grid-template-columns:1fr!important;
@@ -628,7 +628,7 @@ html,body,.app{max-width:100%;overflow-x:hidden}
 }
 
 
-/* V2.11 — version and device are permanently visible */
+/* V2.12 — version and device are permanently visible */
 .compact-brand{
   gap:5px!important;
   min-width:max-content!important;
@@ -696,7 +696,7 @@ html,body,.app{max-width:100%;overflow-x:hidden}
 
 
 /* ============================================================
-   V2.11 — Adaptive Session Layout
+   V2.12 — Adaptive Session Layout
    Empty modules collapse. Layout follows the Project content.
    ============================================================ */
 
@@ -807,6 +807,120 @@ html,body,.app{max-width:100%;overflow-x:hidden}
   }
 }
 
+
+/* ============================================================
+   V2.12 — Persistent research split + scroll-stable Session
+   ============================================================ */
+
+/* Research layout on iPad/desktop:
+   keep useful left/right columns even in portrait and Split View. */
+body.device-ipad #sessionView .session-dashboard.layout-split,
+body.device-desktop #sessionView .session-dashboard.layout-split{
+  display:grid!important;
+  grid-template-columns:minmax(122px,.78fr) minmax(0,1.52fr)!important;
+  gap:6px!important;
+  align-items:start!important;
+}
+
+/* Override earlier max-width rules that forced all dashboards to one column. */
+@media(max-width:900px){
+  body.device-ipad #sessionView .session-dashboard.layout-split,
+  body.device-desktop #sessionView .session-dashboard.layout-split{
+    grid-template-columns:minmax(118px,.76fr) minmax(0,1.54fr)!important;
+  }
+}
+
+/* iPhone stays single-column: there simply is not enough physical width
+   for reliable large clinical buttons in two full panels. */
+body.device-iphone #sessionView .session-dashboard.layout-split{
+  grid-template-columns:1fr!important;
+}
+
+/* Use every bit of the two columns instead of leaving dead horizontal space. */
+#sessionView .session-dashboard.layout-split .session-left,
+#sessionView .session-dashboard.layout-split .session-right{
+  min-width:0!important;
+  width:100%!important;
+}
+#sessionView .session-dashboard.layout-split .card{
+  min-width:0!important;
+  box-sizing:border-box!important;
+}
+
+/* Left research column: timer cards stay in a compact 2-up grid. */
+#sessionView .session-dashboard.layout-split .session-timer-grid{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:5px!important;
+}
+#sessionView .session-dashboard.layout-split .timer-card{
+  min-width:0!important;
+  padding-left:5px!important;
+  padding-right:5px!important;
+}
+
+/* Situation buttons use the full left-column width and wrap safely. */
+#sessionView .session-dashboard.layout-split .situation-grid{
+  grid-template-columns:1fr!important;
+  gap:5px!important;
+}
+#sessionView .session-dashboard.layout-split .sit-btn{
+  width:100%!important;
+  min-width:0!important;
+  max-width:100%!important;
+  white-space:normal!important;
+  overflow-wrap:anywhere!important;
+}
+
+/* Response remains two-per-row in the right research column. */
+#sessionView .session-dashboard.layout-split .response-grid{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:5px!important;
+}
+
+/* Observation uses the right column efficiently:
+   counters two-per-row; Category/Rating spans both columns. */
+#sessionView .session-dashboard.layout-split #observationGroups{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:6px!important;
+}
+#sessionView .session-dashboard.layout-split #observationGroups .counter-observation{
+  grid-column:auto!important;
+}
+#sessionView .session-dashboard.layout-split #observationGroups .choice-observation{
+  grid-column:1 / -1!important;
+}
+#sessionView .session-dashboard.layout-split #observationGroups .choice-observation .situation-grid{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+}
+
+/* Very narrow iPad Split View: preserve the research split, but trim padding. */
+@media(max-width:520px){
+  body.device-ipad #sessionView .session-dashboard.layout-split{
+    grid-template-columns:minmax(105px,.72fr) minmax(0,1.58fr)!important;
+    gap:5px!important;
+  }
+  body.device-ipad #sessionView .session-dashboard.layout-split .card{
+    padding-left:6px!important;
+    padding-right:6px!important;
+  }
+  body.device-ipad #sessionView .session-dashboard.layout-split .panel-title{
+    padding-left:6px!important;
+    padding-right:6px!important;
+  }
+  body.device-ipad #sessionView .session-dashboard.layout-split .response-btn,
+  body.device-ipad #sessionView .session-dashboard.layout-split .sit-btn{
+    padding-left:4px!important;
+    padding-right:4px!important;
+  }
+}
+
+/* Prevent browser scroll anchoring from fighting the preserved Session position
+   when the live timer DOM is refreshed. */
+#sessionView{
+  overflow-anchor:none;
+}
+
 </style>
 
 <link rel="manifest" href="manifest.webmanifest">
@@ -821,7 +935,7 @@ html,body,.app{max-width:100%;overflow-x:hidden}
 <div class="app">
 <header class="compact-app-header">
   <div class="brand compact-brand">
-    <h1>Clinical Timer <span class="version-chip">V2.11</span></h1>
+    <h1>Clinical Timer <span class="version-chip">V2.12</span></h1>
     <span id="deviceModeLabel" class="device-chip"></span>
   </div>
   <div class="tabs compact-tabs">
@@ -1126,18 +1240,46 @@ let alertSounding=false;
 let audioPrimed=false;
 let activeStoredName=null;
 let uiInteractionActive=false;
+let uiScrollActive=false;
 let uiRenderPending=false;
 let lastSessionUiRender=0;
+let scrollIdleTimer=null;
 
+function sessionViewIsActive(){
+ return !!document.querySelector('#sessionView.view.active');
+}
+function rememberScrollPosition(){
+ const el=document.scrollingElement||document.documentElement;
+ return {x:window.scrollX||el.scrollLeft||0,y:window.scrollY||el.scrollTop||0};
+}
+function restoreScrollPosition(pos){
+ if(!pos)return;
+ requestAnimationFrame(()=>{
+  const el=document.scrollingElement||document.documentElement;
+  try{window.scrollTo(pos.x,pos.y)}catch(e){
+   el.scrollLeft=pos.x;el.scrollTop=pos.y;
+  }
+ });
+}
 function safeRenderSession(force=false){
- if(uiInteractionActive&&!force){uiRenderPending=true;return}
+ if((uiInteractionActive||uiScrollActive)&&!force){
+  uiRenderPending=true;
+  return;
+ }
+ const keepScroll=runtime&&sessionViewIsActive();
+ const pos=keepScroll?rememberScrollPosition():null;
  uiRenderPending=false;
  lastSessionUiRender=Date.now();
  renderSession();
+ if(keepScroll)restoreScrollPosition(pos);
+}
+function flushPendingSessionRender(){
+ if(uiInteractionActive||uiScrollActive)return;
+ if(uiRenderPending)requestAnimationFrame(()=>safeRenderSession(true));
 }
 function endUiInteraction(){
  uiInteractionActive=false;
- if(uiRenderPending)requestAnimationFrame(()=>safeRenderSession(true));
+ flushPendingSessionRender();
 }
 document.addEventListener('pointerdown',()=>{uiInteractionActive=true},{capture:true,passive:true});
 document.addEventListener('pointerup',endUiInteraction,{capture:true,passive:true});
@@ -1145,6 +1287,19 @@ document.addEventListener('pointercancel',endUiInteraction,{capture:true,passive
 document.addEventListener('touchstart',()=>{uiInteractionActive=true},{capture:true,passive:true});
 document.addEventListener('touchend',endUiInteraction,{capture:true,passive:true});
 document.addEventListener('touchcancel',endUiInteraction,{capture:true,passive:true});
+
+// During a live Session, do not rebuild the controls while the user is
+// scrolling or while iPad inertial scrolling is still moving the page.
+window.addEventListener('scroll',()=>{
+ if(!runtime?.running||!sessionViewIsActive())return;
+ uiScrollActive=true;
+ uiRenderPending=true;
+ if(scrollIdleTimer)clearTimeout(scrollIdleTimer);
+ scrollIdleTimer=setTimeout(()=>{
+  uiScrollActive=false;
+  flushPendingSessionRender();
+ },420);
+},{passive:true});
 
 function applyColors(){
  const c=project.colors;
@@ -1567,6 +1722,9 @@ function timerDisplay(t){
  return {value,note};
 }
 function renderSession(){
+ const _preserveLiveScroll=runtime&&sessionViewIsActive();
+ const _liveScrollPos=_preserveLiveScroll?rememberScrollPosition():null;
+
  project=ensureProjectDefaults(project);
 
  const enabledTimers=project.timers.filter(t=>t.enabled);
@@ -1632,6 +1790,7 @@ function renderSession(){
   }).forEach(o=>notices.push(`Observation 提示：${o.name}`));
  }
  $('#sessionNotice').innerHTML=notices.length?`<div class="notice">通知：${notices.map(esc).join('　｜　')}</div>`:'<div class="notice idle">通知：—</div>';
+ if(_preserveLiveScroll)restoreScrollPosition(_liveScrollPos);
 }
 function renderLog(){
  const el=$('#eventLog');if(!runtime){el.innerHTML='<div class="muted" style="padding:10px 0">尚未開始 Session。</div>';$('#eventCount').textContent='0 events';return}
