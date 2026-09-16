@@ -306,7 +306,7 @@ html,body,.app{max-width:100%;overflow-x:hidden}
 }
 
 
-/* V2.12 — compact top controls */
+/* V2.13 — compact top controls */
 .app{
   padding-top:8px;
 }
@@ -469,7 +469,7 @@ html,body,.app{max-width:100%;overflow-x:hidden}
 }
 
 
-/* V2.12 — card-width-aware controls */
+/* V2.13 — card-width-aware controls */
 #sessionView .situation-panel,
 #sessionView .response-panel{
   container-type:inline-size;
@@ -532,7 +532,7 @@ html,body,.app{max-width:100%;overflow-x:hidden}
 }
 
 
-/* V2.12 — response priority + centered adaptive Event Counter */
+/* V2.13 — response priority + centered adaptive Event Counter */
 
 /* Student Response:
    Keep 2 columns for almost all practical phone/iPad widths.
@@ -566,7 +566,7 @@ html,body,.app{max-width:100%;overflow-x:hidden}
 }
 
 /* V2.8 changed to 1 column at 310px, which was too early in iPad Split View.
-   V2.12 keeps two columns down to a much smaller real card width. */
+   V2.13 keeps two columns down to a much smaller real card width. */
 @container (max-width: 220px){
   #sessionView .response-panel .response-grid{
     grid-template-columns:1fr!important;
@@ -628,7 +628,7 @@ html,body,.app{max-width:100%;overflow-x:hidden}
 }
 
 
-/* V2.12 — version and device are permanently visible */
+/* V2.13 — version and device are permanently visible */
 .compact-brand{
   gap:5px!important;
   min-width:max-content!important;
@@ -696,7 +696,7 @@ html,body,.app{max-width:100%;overflow-x:hidden}
 
 
 /* ============================================================
-   V2.12 — Adaptive Session Layout
+   V2.13 — Adaptive Session Layout
    Empty modules collapse. Layout follows the Project content.
    ============================================================ */
 
@@ -809,7 +809,7 @@ html,body,.app{max-width:100%;overflow-x:hidden}
 
 
 /* ============================================================
-   V2.12 — Persistent research split + scroll-stable Session
+   V2.13 — Persistent research split + scroll-stable Session
    ============================================================ */
 
 /* Research layout on iPad/desktop:
@@ -921,6 +921,25 @@ body.device-iphone #sessionView .session-dashboard.layout-split{
   overflow-anchor:none;
 }
 
+
+/* V2.13 — live Session stability */
+#sessionView .timer-value,
+#sessionView [data-observation-badge],
+#sessionView [data-response-count],
+#sessionView [data-observation-total]{
+  font-variant-numeric:tabular-nums;
+}
+
+/* Normal live ticks now update text/classes in place instead of replacing
+   Session cards. These hints further reduce Safari layout churn. */
+#sessionView .timer-card,
+#sessionView .counter-observation,
+#sessionView .choice-observation,
+#sessionView .response-btn,
+#sessionView .sit-btn{
+  contain:layout style;
+}
+
 </style>
 
 <link rel="manifest" href="manifest.webmanifest">
@@ -935,7 +954,7 @@ body.device-iphone #sessionView .session-dashboard.layout-split{
 <div class="app">
 <header class="compact-app-header">
   <div class="brand compact-brand">
-    <h1>Clinical Timer <span class="version-chip">V2.12</span></h1>
+    <h1>Clinical Timer <span class="version-chip">V2.13</span></h1>
     <span id="deviceModeLabel" class="device-chip"></span>
   </div>
   <div class="tabs compact-tabs">
@@ -1240,41 +1259,49 @@ let alertSounding=false;
 let audioPrimed=false;
 let activeStoredName=null;
 let uiInteractionActive=false;
-let uiScrollActive=false;
 let uiRenderPending=false;
 let lastSessionUiRender=0;
-let scrollIdleTimer=null;
 
 function sessionViewIsActive(){
  return !!document.querySelector('#sessionView.view.active');
 }
-function rememberScrollPosition(){
+function captureScrollAnchor(){
  const el=document.scrollingElement||document.documentElement;
- return {x:window.scrollX||el.scrollLeft||0,y:window.scrollY||el.scrollTop||0};
+ const y=window.scrollY||el.scrollTop||0;
+ const max=Math.max(0,el.scrollHeight-el.clientHeight);
+ const bottomGap=Math.max(0,max-y);
+ return {
+  y,
+  bottomGap,
+  nearBottom:bottomGap<=120
+ };
 }
-function restoreScrollPosition(pos){
- if(!pos)return;
- requestAnimationFrame(()=>{
+function restoreScrollAnchor(anchor){
+ if(!anchor)return;
+ // Two RAFs let Safari finish layout before restoring the viewport.
+ requestAnimationFrame(()=>requestAnimationFrame(()=>{
   const el=document.scrollingElement||document.documentElement;
-  try{window.scrollTo(pos.x,pos.y)}catch(e){
-   el.scrollLeft=pos.x;el.scrollTop=pos.y;
-  }
- });
+  const max=Math.max(0,el.scrollHeight-el.clientHeight);
+  const target=anchor.nearBottom
+    ? Math.max(0,max-Math.min(anchor.bottomGap,max))
+    : Math.min(anchor.y,max);
+  try{window.scrollTo({left:0,top:target,behavior:'auto'})}
+  catch(e){el.scrollTop=target}
+ }));
 }
 function safeRenderSession(force=false){
- if((uiInteractionActive||uiScrollActive)&&!force){
+ if(uiInteractionActive&&!force){
   uiRenderPending=true;
   return;
  }
- const keepScroll=runtime&&sessionViewIsActive();
- const pos=keepScroll?rememberScrollPosition():null;
+ const anchor=runtime&&sessionViewIsActive()?captureScrollAnchor():null;
  uiRenderPending=false;
- lastSessionUiRender=Date.now();
  renderSession();
- if(keepScroll)restoreScrollPosition(pos);
+ lastSessionUiRender=Date.now();
+ if(anchor)restoreScrollAnchor(anchor);
 }
 function flushPendingSessionRender(){
- if(uiInteractionActive||uiScrollActive)return;
+ if(uiInteractionActive)return;
  if(uiRenderPending)requestAnimationFrame(()=>safeRenderSession(true));
 }
 function endUiInteraction(){
@@ -1287,19 +1314,6 @@ document.addEventListener('pointercancel',endUiInteraction,{capture:true,passive
 document.addEventListener('touchstart',()=>{uiInteractionActive=true},{capture:true,passive:true});
 document.addEventListener('touchend',endUiInteraction,{capture:true,passive:true});
 document.addEventListener('touchcancel',endUiInteraction,{capture:true,passive:true});
-
-// During a live Session, do not rebuild the controls while the user is
-// scrolling or while iPad inertial scrolling is still moving the page.
-window.addEventListener('scroll',()=>{
- if(!runtime?.running||!sessionViewIsActive())return;
- uiScrollActive=true;
- uiRenderPending=true;
- if(scrollIdleTimer)clearTimeout(scrollIdleTimer);
- scrollIdleTimer=setTimeout(()=>{
-  uiScrollActive=false;
-  flushPendingSessionRender();
- },420);
-},{passive:true});
 
 function applyColors(){
  const c=project.colors;
@@ -1621,7 +1635,7 @@ function undo(){
   }
   addEvent('Correction','Undo observation category',project.observations.find(o=>o.id===u.id)?.name||'')
 }
- $('#undoBtn').disabled=!runtime.undoStack.length;renderSession();
+ $('#undoBtn').disabled=!runtime.undoStack.length;safeRenderSession(true);
 }
 function tick(){
  if(runtime&&runtime.running&&!runtime.paused&&!runtime.ended){
@@ -1675,10 +1689,8 @@ function tick(){
     }
    }
   });
-  if(uiStateChanged){
-   safeRenderSession();
-  }else if(now-lastSessionUiRender>=1000){
-   safeRenderSession();
+  if(uiStateChanged||now-lastSessionUiRender>=1000){
+   refreshSessionLiveUI();
   }
  } else if(runtime){runtime.lastTick=Date.now()}
  requestAnimationFrame(tick);
@@ -1721,10 +1733,113 @@ function timerDisplay(t){
  }
  return {value,note};
 }
-function renderSession(){
- const _preserveLiveScroll=runtime&&sessionViewIsActive();
- const _liveScrollPos=_preserveLiveScroll?rememberScrollPosition():null;
 
+function updateSessionNoticeOnly(){
+ let notices=[];
+ if(runtime){
+  project.timers.filter(t=>t.enabled&&runtime.timers[t.id]?.due)
+   .forEach(t=>notices.push(`${t.name} 已到時`));
+  project.observations.filter(o=>{
+   if(!o.enabled)return false;
+   const rt=runtime.observations[o.id];
+   return (rt?.due&&!rt?.recordedThisInterval)||
+          (rt?.alertUntil&&Date.now()<rt.alertUntil);
+  }).forEach(o=>notices.push(`Observation 提示：${o.name}`));
+ }
+ const html=notices.length
+  ? `<div class="notice">通知：${notices.map(esc).join('　｜　')}</div>`
+  : '<div class="notice idle">通知：—</div>';
+ const box=$('#sessionNotice');
+ if(box&&box.innerHTML!==html)box.innerHTML=html;
+}
+
+function refreshSessionLiveUI(){
+ if(!runtime||!sessionViewIsActive())return;
+
+ renderSoundButton();
+
+ const cur=$('#currentSituation');
+ if(cur)cur.textContent=runtime.paused?'全部暫停':currentSituationName()||'無 Situation';
+
+ $('#startBtn').disabled=!!runtime.running;
+ $('#pauseBtn').disabled=!runtime.running;
+ $('#endBtn').disabled=!runtime.running;
+ $('#pauseBtn').textContent=runtime.paused?'繼續':'暫停';
+ $('#undoBtn').disabled=!runtime.undoStack.length;
+
+ project.timers.filter(t=>t.enabled).forEach(t=>{
+  const d=timerDisplay(t);
+  const card=document.querySelector(`[data-timer-card="${CSS.escape(t.id)}"]`);
+  const value=document.querySelector(`[data-timer-value="${CSS.escape(t.id)}"]`);
+  const note=document.querySelector(`[data-timer-note="${CSS.escape(t.id)}"]`);
+  if(value&&value.textContent!==d.value)value.textContent=d.value;
+  if(note&&note.textContent!==d.note)note.textContent=d.note;
+  if(card)card.classList.toggle('overdue',!!runtime.timers[t.id]?.due);
+ });
+
+ project.situations.forEach(sit=>{
+  const b=document.querySelector(`[data-sit="${CSS.escape(sit.id)}"]`);
+  if(!b)return;
+  b.classList.toggle('active',runtime.situationId===sit.id);
+  b.disabled=!runtime.running||runtime.paused;
+ });
+
+ project.responses.forEach(r=>{
+  const b=document.querySelector(`[data-res="${CSS.escape(r.id)}"]`);
+  const count=document.querySelector(`[data-response-count="${CSS.escape(r.id)}"]`);
+  if(b)b.disabled=!runtime.running||runtime.paused;
+  const n=String(runtime.responses[r.id]||0);
+  if(count&&count.textContent!==n)count.textContent=n;
+ });
+
+ project.observations.filter(o=>o.enabled).forEach(o=>{
+  const rt=runtime.observations[o.id];
+  if(!rt)return;
+  const int=parseTime(o.interval);
+  const rem=fmt(Math.max(0,int-rt.cycle));
+  const badge=document.querySelector(`[data-observation-badge="${CSS.escape(o.id)}"]`);
+  const badgeText=`第 ${rt.intervalIndex||1} 段 · ${rem}`;
+  if(badge&&badge.textContent!==badgeText)badge.textContent=badgeText;
+
+  const card=document.querySelector(`[data-observation-card="${CSS.escape(o.id)}"]`);
+
+  if(o.type==='counter'){
+   const flashing=!!(rt.alertUntil&&Date.now()<rt.alertUntil);
+   if(card)card.classList.toggle('overdue',flashing);
+
+   const btn=document.querySelector(`[data-obs-counter="${CSS.escape(o.id)}"]`);
+   if(btn)btn.disabled=!runtime.running||runtime.paused;
+
+   const total=document.querySelector(`[data-observation-total="${CSS.escape(o.id)}"]`);
+   const totalText=String(rt.total||0);
+   if(total&&total.textContent!==totalText)total.textContent=totalText;
+
+   const meta=document.querySelector(`[data-observation-counter-meta="${CSS.escape(o.id)}"]`);
+   const metaText=`本段 ${rt.segment||0} · 上段 ${rt.lastSegment||0}`;
+   if(meta&&meta.textContent!==metaText)meta.textContent=metaText;
+  }else{
+   const locked=!!rt.recordedThisInterval;
+   const status=locked
+    ? `本段已記錄：${rt.currentValue}`
+    : (rt.due?'新時段：請記錄':'本段可隨時記錄一次');
+   const statusEl=document.querySelector(`[data-observation-status="${CSS.escape(o.id)}"]`);
+   if(statusEl&&statusEl.textContent!==status)statusEl.textContent=status;
+
+   const flashing=!!(rt.due&&!locked)||
+                  !!(rt.alertUntil&&Date.now()<rt.alertUntil);
+   if(card)card.classList.toggle('overdue',flashing);
+
+   document.querySelectorAll(`[data-obs-cat="${CSS.escape(o.id)}"]`).forEach(btn=>{
+    btn.disabled=!runtime.running||runtime.paused||locked;
+   });
+  }
+ });
+
+ updateSessionNoticeOnly();
+ lastSessionUiRender=Date.now();
+}
+
+function renderSession(){
  project=ensureProjectDefaults(project);
 
  const enabledTimers=project.timers.filter(t=>t.enabled);
@@ -1756,25 +1871,25 @@ function renderSession(){
  $('#timerGrid').innerHTML=enabledTimers.map(t=>{
   const d=timerDisplay(t);
   const due=runtime?.timers[t.id]?.due?' overdue':'';
-  return `<div class="timer-card${due}"><div class="timer-name">${esc(t.name)}</div><div class="timer-value">${esc(d.value)}</div><div class="timer-note">${esc(d.note)}</div></div>`
+  return `<div class="timer-card${due}" data-timer-card="${t.id}"><div class="timer-name">${esc(t.name)}</div><div class="timer-value" data-timer-value="${t.id}">${esc(d.value)}</div><div class="timer-note" data-timer-note="${t.id}">${esc(d.note)}</div></div>`
  }).join('');
  $('#situationButtons').innerHTML=project.situations.map(s=>`<button class="sit-btn ${runtime?.situationId===s.id?'active':''}" data-sit="${s.id}" style="${styles(s.color)}" ${!runtime?.running||runtime?.paused?'disabled':''}>${esc(s.name)}</button>`).join('');
- $('#responseButtons').innerHTML=project.responses.map(r=>`<button class="response-btn" data-res="${r.id}" style="${styles(r.color)}" ${!runtime?.running||runtime?.paused?'disabled':''}>${esc(r.name)}<span class="count">${runtime?.responses[r.id]||0}</span><span class="small">${r.mode==='count'?'只計數':'觸發 '+esc(r.targetSituationName)}</span></button>`).join('');
+ $('#responseButtons').innerHTML=project.responses.map(r=>`<button class="response-btn" data-res="${r.id}" style="${styles(r.color)}" ${!runtime?.running||runtime?.paused?'disabled':''}>${esc(r.name)}<span class="count" data-response-count="${r.id}">${runtime?.responses[r.id]||0}</span><span class="small">${r.mode==='count'?'只計數':'觸發 '+esc(r.targetSituationName)}</span></button>`).join('');
  $('#observationGroups').innerHTML=enabledObservations.map(o=>{
   const rt=runtime?.observations[o.id];
   const int=parseTime(o.interval),rem=rt?fmt(Math.max(0,int-rt.cycle)):o.interval;
   if(o.type==='counter'){
    const seg=rt?.intervalIndex||1;
    const flashing=!!(rt?.alertUntil&&Date.now()<rt.alertUntil);
-   return `<div class="setup-row counter-observation ${flashing?'overdue':''}" style="border-color:${o.color}"><div class="section-head"><strong>${esc(o.name)}</strong><span class="badge">第 ${seg} 段 · ${esc(rem)}</span></div><button class="obs-btn counter-button" data-obs-counter="${o.id}" style="${styles(o.color)}" ${!runtime?.running||runtime?.paused?'disabled':''}>＋1<span class="count" style="display:block;font-size:1.8rem">${rt?.total||0}</span><span class="small">本段 ${rt?.segment||0} · 上段 ${rt?.lastSegment||0}</span></button></div>`;
+   return `<div class="setup-row counter-observation ${flashing?'overdue':''}" data-observation-card="${o.id}" style="border-color:${o.color}"><div class="section-head"><strong>${esc(o.name)}</strong><span class="badge" data-observation-badge="${o.id}">第 ${seg} 段 · ${esc(rem)}</span></div><button class="obs-btn counter-button" data-obs-counter="${o.id}" style="${styles(o.color)}" ${!runtime?.running||runtime?.paused?'disabled':''}>＋1<span class="count" data-observation-total="${o.id}" style="display:block;font-size:1.8rem">${rt?.total||0}</span><span class="small" data-observation-counter-meta="${o.id}">本段 ${rt?.segment||0} · 上段 ${rt?.lastSegment||0}</span></button></div>`;
   }
   const locked=!!rt?.recordedThisInterval;
   const seg=rt?.intervalIndex||1;
   const status=!runtime?'開始 Session 後可立即記錄':locked?`本段已記錄：${rt.currentValue}`:(rt?.due?'新時段：請記錄':'本段可隨時記錄一次');
   const flashing=!!(rt?.due&&!locked)||!!(rt?.alertUntil&&Date.now()<rt.alertUntil);
-  return `<div class="setup-row choice-observation ${flashing?'overdue':''}" style="border-color:${o.color}">
-    <div class="section-head"><strong>${esc(o.name)}</strong><span class="badge">第 ${seg} 段 · ${esc(rem)}</span></div>
-    <div class="small muted" style="margin:3px 0 6px">${esc(status)}</div>
+  return `<div class="setup-row choice-observation ${flashing?'overdue':''}" data-observation-card="${o.id}" style="border-color:${o.color}">
+    <div class="section-head"><strong>${esc(o.name)}</strong><span class="badge" data-observation-badge="${o.id}">第 ${seg} 段 · ${esc(rem)}</span></div>
+    <div class="small muted" data-observation-status="${o.id}" style="margin:3px 0 6px">${esc(status)}</div>
     <div class="situation-grid">${(o.options||[]).map(v=>`<button class="obs-btn" data-obs-cat="${o.id}" data-value="${esc(v)}" style="${styles(o.color)}" ${!runtime?.running||runtime?.paused||locked?'disabled':''}>${esc(v)}</button>`).join('')}</div>
   </div>`
  }).join('');
@@ -1790,12 +1905,24 @@ function renderSession(){
   }).forEach(o=>notices.push(`Observation 提示：${o.name}`));
  }
  $('#sessionNotice').innerHTML=notices.length?`<div class="notice">通知：${notices.map(esc).join('　｜　')}</div>`:'<div class="notice idle">通知：—</div>';
- if(_preserveLiveScroll)restoreScrollPosition(_liveScrollPos);
 }
 function renderLog(){
- const el=$('#eventLog');if(!runtime){el.innerHTML='<div class="muted" style="padding:10px 0">尚未開始 Session。</div>';$('#eventCount').textContent='0 events';return}
+ const el=$('#eventLog');
+ const panel=$('#eventLogPanel');
+ if(!runtime){
+  $('#eventCount').textContent='0 events';
+  if(panel&&!panel.classList.contains('hidden'))el.innerHTML='<div class="muted" style="padding:10px 0">尚未開始 Session。</div>';
+  return;
+ }
  $('#eventCount').textContent=`${runtime.events.length} events`;
+
+ // When collapsed, changing this hidden DOM is unnecessary and can still
+ // trigger Safari layout/scroll calculations.
+ if(panel?.classList.contains('hidden'))return;
+
+ const anchor=sessionViewIsActive()?captureScrollAnchor():null;
  el.innerHTML=runtime.events.slice(-30).reverse().map(e=>`<div class="log-row"><div>${esc(e.clock)}</div><div><strong>${esc(e.type)}</strong></div><div class="detail">${esc(e.name)} ${e.value?`— ${esc(e.value)}`:''}<div class="small muted">Session ${fmt(e.sessionSec)}${e.situation?' · '+esc(e.situation):''}</div></div></div>`).join('')||'<div class="muted" style="padding:10px 0">尚未有事件。</div>';
+ if(anchor)restoreScrollAnchor(anchor);
 }
 function historyGet(){
  try{return JSON.parse(localStorage.getItem('reganTimerSessionHistory')||'[]')}catch(e){return []}
@@ -2127,7 +2254,7 @@ async function setSoundEnabled(enabled){
  safeRenderSession(true);
 }
 
-$('#pauseBtn').onclick=()=>{if(!runtime)return;stopAlertSound();runtime.paused=!runtime.paused;runtime.lastTick=Date.now();addEvent('Session',runtime.paused?'Paused':'Resumed');renderSession()};
+$('#pauseBtn').onclick=()=>{if(!runtime)return;stopAlertSound();runtime.paused=!runtime.paused;runtime.lastTick=Date.now();addEvent('Session',runtime.paused?'Paused':'Resumed');refreshSessionLiveUI()};
 $('#endBtn').onclick=endSession;$('#undoBtn').onclick=undo;
 $('#soundToggleBtn').onclick=()=>setSoundEnabled(project?.settings?.soundEnabled===false);
 $('#soundEnabledSetup').onchange=e=>{void setSoundEnabled(e.target.checked)};
@@ -2181,6 +2308,7 @@ $('#eventLogToggleBtn').onclick=()=>{
  const opening=panel.classList.contains('hidden');
  panel.classList.toggle('hidden',!opening);
  $('#eventLogToggleBtn').textContent=opening?'收起 Event Log':'展開 Event Log';
+ if(opening)renderLog();
 };
 
 $('#exportBackupBtn').onclick=exportFullBackup;
