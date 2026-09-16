@@ -68,21 +68,24 @@ input[type=color]{width:52px;height:44px;padding:2px;border:2px solid var(--bord
 hr{border:0;border-top:1px solid var(--border);margin:14px 0}
 .color-line{display:flex;gap:8px;align-items:center}
 .overdue{
-  animation:cellBackgroundFlash .78s ease-in-out infinite !important;
-  color:#111 !important;
+  position:relative !important;
+  overflow:hidden !important;
+  isolation:isolate;
 }
-@keyframes cellBackgroundFlash{
-  0%,100%{
-    background:#fff2a8 !important;
-    box-shadow:0 0 0 2px rgba(255,176,0,.18),0 0 16px rgba(255,176,0,.32);
-  }
-  50%{
-    background:#ff9f9a !important;
-    box-shadow:0 0 0 3px rgba(217,45,32,.16),0 0 24px rgba(217,45,32,.32);
-  }
+.overdue::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius:inherit;
+  pointer-events:none;
+  z-index:50;
+  background:rgba(255,214,0,.36);
+  animation:fullCellBackgroundFlash .68s steps(1,end) infinite;
 }
-@media(prefers-reduced-motion:reduce){
-  .overdue{animation:none !important;background:#fff2a8 !important}
+@keyframes fullCellBackgroundFlash{
+  0%,100%{background:rgba(255,218,38,.34)}
+  50%{background:rgba(255,66,66,.58)}
+}
 }
 .hidden{display:none!important}
 
@@ -319,7 +322,7 @@ html,body,.app{max-width:100%;overflow-x:hidden}
 <body>
 <div class="app">
 <header>
-  <div class="brand"><h1>Regan Clinical & Research Timer</h1><p>多計時器 · 治療紀錄 · 行動研究 · V2.4 <span id="deviceModeLabel"></span></p></div>
+  <div class="brand"><h1>Regan Clinical & Research Timer</h1><p>多計時器 · 治療紀錄 · 行動研究 · V2.5 <span id="deviceModeLabel"></span></p></div>
   <div class="tabs">
     <button class="tab active" data-tab="session">Session</button>
     <button class="tab" data-tab="setup">Project Setup</button>
@@ -421,10 +424,16 @@ html,body,.app{max-width:100%;overflow-x:hidden}
     <div class="section-head">
       <div>
         <h2>🔔 提示設定</h2>
-        <div class="small muted">提示聲約 3 秒，以 Web Audio 播放，不使用獨立影片／音樂播放器，因此較不容易令正在播放的影片暫停。每個 Timer / Observation 可獨立關閉聲效；背景閃爍不受聲效開關影響。</div>
+        <div class="small muted">iPadOS 對靜音掣有系統限制：可「與影片混音」的 ambient 模式會受靜音掣影響；要在靜音模式仍響，需要 playback 模式，而 playback 有機會短暫干擾其他 App 的影片／聲音。你可以按情況選擇。</div>
       </div>
-      <div class="actions">
+      <div class="actions" style="align-items:end">
         <label class="toggle"><input id="soundEnabledSetup" type="checkbox" checked> 全部聲效</label>
+        <label style="min-width:260px">聲效模式
+          <select id="soundModeSetup">
+            <option value="videoFriendly">影片優先（混音；靜音模式可能無聲）</option>
+            <option value="silentCompatible">靜音模式仍響（可能干擾其他影片）</option>
+          </select>
+        </label>
         <button id="testSoundBtn" class="btn" type="button">▶ 測試提示聲</button>
       </div>
     </div>
@@ -583,6 +592,7 @@ function ensureProjectDefaults(p){
   const q=p||presetBlank();
   q.settings=q.settings||{};
   if(typeof q.settings.soundEnabled!=='boolean')q.settings.soundEnabled=true;
+  if(!['videoFriendly','silentCompatible'].includes(q.settings.soundMode))q.settings.soundMode='videoFriendly';
   q.colors=q.colors||{accent:'#0b57d0',timer:'#d9ecff',response:'#fff0d8',observation:'#f1e6ff'};
   q.timers=(q.timers||[]).map(t=>{
     if(!t||typeof t!=='object')return t;
@@ -624,12 +634,31 @@ function applyColors(){
  [['accentColor','accentHex','accent'],['timerColor','timerHex','timer'],['responseColor','responseHex','response'],['observationColor','observationHex','observation']].forEach(([a,b,k])=>{if($('#'+a)){ $('#'+a).value=c[k]; $('#'+b).value=c[k]; }});
 }
 
+function desiredAudioSessionType(){
+ return project?.settings?.soundMode==='silentCompatible'?'playback':'ambient';
+}
+function applyAlertAudioSession(){
+ try{
+  if(navigator.audioSession && 'type' in navigator.audioSession){
+   navigator.audioSession.type=desiredAudioSessionType();
+  }
+ }catch(e){}
+}
+function restoreMixingAudioSession(){
+ try{
+  if(navigator.audioSession && 'type' in navigator.audioSession){
+   navigator.audioSession.type='ambient';
+  }
+ }catch(e){}
+}
+
 let activeAlertNodes=[];
 let alertStopTimer=null;
 
 async function unlockAudio(){
  if(project?.settings?.soundEnabled===false)return false;
  try{
+  applyAlertAudioSession();
   if(!audioCtx || audioCtx.state==='closed'){
    audioCtx=new (window.AudioContext||window.webkitAudioContext)({latencyHint:'interactive'});
   }
@@ -658,12 +687,13 @@ function stopAlertSound(){
  activeAlertNodes.forEach(n=>{try{n.stop()}catch(e){};try{n.disconnect()}catch(e){}});
  activeAlertNodes=[];
  alertSounding=false;
+ restoreMixingAudioSession();
  renderSoundButton();
 }
 
 async function startAlertSound(){
  if(project?.settings?.soundEnabled===false)return;
- if(alertSounding)return; // one chime is enough; due cards identify the source visually
+ if(alertSounding)return;
  const ok=await unlockAudio();
  if(!ok||!audioCtx)return;
 
@@ -672,13 +702,16 @@ async function startAlertSound(){
   renderSoundButton();
   const base=audioCtx.currentTime+0.035;
 
-  // ~3 second repeating two-note pattern. Scheduled directly on the Web Audio
-  // timeline (rather than HTMLAudio) so it can mix with video playback.
+  // ~4.2 second repeating two-note chime. In videoFriendly mode this uses
+  // ambient mixing and respects the iPad silent switch. In silentCompatible
+  // mode the Audio Session is temporarily set to playback so the alert can
+  // sound through silent mode; iPadOS may then interrupt/duck other media.
   const notes=[
-   [0.00,880,.28],[0.38,1175,.28],
-   [0.82,880,.28],[1.20,1175,.28],
-   [1.64,880,.28],[2.02,1175,.28],
-   [2.46,880,.32],[2.86,1320,.34]
+   [0.00,820,.30],[0.42,1100,.30],
+   [0.94,820,.30],[1.36,1100,.30],
+   [1.88,820,.30],[2.30,1100,.30],
+   [2.82,820,.30],[3.24,1100,.30],
+   [3.76,920,.34],[4.12,1320,.34]
   ];
   notes.forEach(([offset,freq,dur])=>{
    const o=audioCtx.createOscillator();
@@ -686,8 +719,8 @@ async function startAlertSound(){
    o.type='sine';
    o.frequency.setValueAtTime(freq,base+offset);
    g.gain.setValueAtTime(0.0001,base+offset);
-   g.gain.exponentialRampToValueAtTime(0.16,base+offset+0.025);
-   g.gain.setValueAtTime(0.16,base+offset+Math.max(.04,dur-.09));
+   g.gain.exponentialRampToValueAtTime(0.19,base+offset+0.025);
+   g.gain.setValueAtTime(0.19,base+offset+Math.max(.05,dur-.09));
    g.gain.exponentialRampToValueAtTime(0.0001,base+offset+dur);
    o.connect(g);g.connect(audioCtx.destination);
    o.start(base+offset);o.stop(base+offset+dur+.02);
@@ -698,8 +731,9 @@ async function startAlertSound(){
    activeAlertNodes=[];
    alertSounding=false;
    alertStopTimer=null;
+   restoreMixingAudioSession();
    renderSoundButton();
-  },3400);
+  },4650);
  }catch(e){
   stopAlertSound();
  }
@@ -715,7 +749,8 @@ function beep(sourceSoundEnabled=true){
 function renderSoundButton(){
  const b=$('#soundToggleBtn');if(!b)return;
  const enabled=project?.settings?.soundEnabled!==false;
- b.textContent=!enabled?'🔇 全部聲效關':alertSounding?'🔔 提示聲播放中':'🔊 全部聲效開';
+ const mode=project?.settings?.soundMode==='silentCompatible'?'靜音可響':'影片優先';
+ b.textContent=!enabled?'🔇 全部聲效關':alertSounding?`🔔 提示聲播放中 · ${mode}`:`🔊 全部聲效開 · ${mode}`;
  b.classList.toggle('alerting',!!alertSounding);
  b.setAttribute('aria-pressed',enabled?'true':'false');
 }
@@ -1148,6 +1183,7 @@ function renderSetup(){
  project=ensureProjectDefaults(project);
  $('#projectName').value=project.name;applyColors();
  if($('#soundEnabledSetup'))$('#soundEnabledSetup').checked=project.settings.soundEnabled!==false;
+ if($('#soundModeSetup'))$('#soundModeSetup').value=project.settings.soundMode||'videoFriendly';
  $('#timerSetup').innerHTML=project.timers.map(t=>`<div class="setup-row"><div class="setup-grid"><label class="toggle"><input type="checkbox" data-ten="${t.id}" ${t.enabled?'checked':''}>啟用</label><label>名稱<input data-tn="${t.id}" type="text" value="${esc(t.name)}"></label><label>類型<select data-tt="${t.id}"><option value="session" ${t.type==='session'?'selected':''}>Session Stopwatch</option><option value="accumulation" ${t.type==='accumulation'?'selected':''}>Accumulation</option><option value="duration" ${t.type==='duration'?'selected':''}>Duration</option><option value="countdown" ${t.type==='countdown'?'selected':''}>Countdown</option></select></label><label>時間<input data-tv="${t.id}" type="text" value="${esc(fmt(parseTime(t.time)))}" placeholder="MM:SS（超過1小時可用 HH:MM:SS）"></label><label class="toggle"><input type="checkbox" data-tsound="${t.id}" ${t.soundEnabled!==false?'checked':''}>🔔 到時響聲</label><button class="btn danger" data-td="${t.id}">刪除</button></div></div>`).join('')||'<div class="muted" style="margin-top:10px">未有 Timer。</div>';
  $('#situationSetup').innerHTML=project.situations.map(s=>`<div class="setup-row"><div class="grid3"><label>Situation 名稱<input data-sn="${s.id}" value="${esc(s.name)}"></label><label>顏色<div class="color-line"><input data-sc="${s.id}" type="color" value="${s.color}"><input data-sh="${s.id}" value="${s.color}"></div></label><div style="display:flex;align-items:end"><button class="btn danger" data-sd="${s.id}">刪除</button></div></div><div class="rule-table" style="margin-top:10px"><table><thead><tr><th>Timer</th><th>此 Situation 的動作</th></tr></thead><tbody>${project.timers.map(t=>`<tr><td>${esc(t.name)}${t.enabled?'':'（已關閉）'}</td><td><select data-rule-s="${s.id}" data-rule-t="${t.id}" ${t.enabled?'':'disabled'}><option value="ignore" ${(s.actions?.[t.id]||'ignore')==='ignore'?'selected':''}>Ignore</option><option value="run" ${s.actions?.[t.id]==='run'?'selected':''}>Run / Resume</option><option value="pause" ${s.actions?.[t.id]==='pause'?'selected':''}>Pause</option><option value="reset" ${s.actions?.[t.id]==='reset'?'selected':''}>Reset + Pause</option></select></td></tr>`).join('')}</tbody></table></div></div>`).join('')||'<div class="muted" style="margin-top:10px">未有 Situation。</div>';
  $('#responseSetup').innerHTML=project.responses.map(r=>`<div class="setup-row"><div class="grid4"><label>名稱<input data-rn="${r.id}" value="${esc(r.name)}"></label><label>模式<select data-rm="${r.id}"><option value="count" ${r.mode==='count'?'selected':''}>只計數 + Timestamp</option><option value="trigger" ${r.mode==='trigger'?'selected':''}>計數 + 切換 Situation</option></select></label><label>切換至<select data-rt="${r.id}" ${r.mode==='trigger'?'':'disabled'}><option value="">—</option>${project.situations.map(s=>`<option ${r.targetSituationName===s.name?'selected':''}>${esc(s.name)}</option>`).join('')}</select></label><label>顏色<div class="color-line"><input data-rc="${r.id}" type="color" value="${r.color}"><input data-rh="${r.id}" value="${r.color}"></div></label></div><button class="btn danger" style="margin-top:8px" data-rd="${r.id}">刪除</button></div>`).join('')||'<div class="muted" style="margin-top:10px">未有 Response。</div>';
@@ -1253,6 +1289,16 @@ function showTab(name){
 $$('.tab').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
 $('#startBtn').onclick=async()=>{await unlockAudio();startRuntime()};
 
+function setSoundMode(mode){
+ project=ensureProjectDefaults(project);
+ project.settings.soundMode=['videoFriendly','silentCompatible'].includes(mode)?mode:'videoFriendly';
+ if($('#soundModeSetup'))$('#soundModeSetup').value=project.settings.soundMode;
+ if(alertSounding)stopAlertSound();
+ applyAlertAudioSession();
+ autoSaveCurrent();
+ renderSession();
+}
+
 function setSoundEnabled(enabled){
  project=ensureProjectDefaults(project);
  project.settings.soundEnabled=!!enabled;
@@ -1269,8 +1315,10 @@ $('#pauseBtn').onclick=()=>{if(!runtime)return;stopAlertSound();runtime.paused=!
 $('#endBtn').onclick=endSession;$('#undoBtn').onclick=undo;
 $('#soundToggleBtn').onclick=()=>setSoundEnabled(project?.settings?.soundEnabled===false);
 $('#soundEnabledSetup').onchange=e=>setSoundEnabled(e.target.checked);
+$('#soundModeSetup').onchange=e=>setSoundMode(e.target.value);
 $('#testSoundBtn').onclick=async()=>{
  if(project?.settings?.soundEnabled===false)setSoundEnabled(true);
+ applyAlertAudioSession();
  await unlockAudio();
  startAlertSound();
 };
