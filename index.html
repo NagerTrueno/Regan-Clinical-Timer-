@@ -306,7 +306,7 @@ html,body,.app{max-width:100%;overflow-x:hidden}
 }
 
 
-/* V2.10 — compact top controls */
+/* V2.11 — compact top controls */
 .app{
   padding-top:8px;
 }
@@ -469,7 +469,7 @@ html,body,.app{max-width:100%;overflow-x:hidden}
 }
 
 
-/* V2.10 — card-width-aware controls */
+/* V2.11 — card-width-aware controls */
 #sessionView .situation-panel,
 #sessionView .response-panel{
   container-type:inline-size;
@@ -532,7 +532,7 @@ html,body,.app{max-width:100%;overflow-x:hidden}
 }
 
 
-/* V2.10 — response priority + centered adaptive Event Counter */
+/* V2.11 — response priority + centered adaptive Event Counter */
 
 /* Student Response:
    Keep 2 columns for almost all practical phone/iPad widths.
@@ -566,7 +566,7 @@ html,body,.app{max-width:100%;overflow-x:hidden}
 }
 
 /* V2.8 changed to 1 column at 310px, which was too early in iPad Split View.
-   V2.10 keeps two columns down to a much smaller real card width. */
+   V2.11 keeps two columns down to a much smaller real card width. */
 @container (max-width: 220px){
   #sessionView .response-panel .response-grid{
     grid-template-columns:1fr!important;
@@ -628,7 +628,7 @@ html,body,.app{max-width:100%;overflow-x:hidden}
 }
 
 
-/* V2.10 — version and device are permanently visible */
+/* V2.11 — version and device are permanently visible */
 .compact-brand{
   gap:5px!important;
   min-width:max-content!important;
@@ -694,6 +694,119 @@ html,body,.app{max-width:100%;overflow-x:hidden}
   }
 }
 
+
+/* ============================================================
+   V2.11 — Adaptive Session Layout
+   Empty modules collapse. Layout follows the Project content.
+   ============================================================ */
+
+#sessionView .session-dashboard.layout-stacked{
+  grid-template-columns:1fr!important;
+  gap:7px!important;
+}
+#sessionView .session-dashboard.layout-split{
+  grid-template-columns:minmax(0,.90fr) minmax(0,1.35fr)!important;
+  gap:8px!important;
+}
+#sessionView .session-dashboard.layout-stacked .session-left,
+#sessionView .session-dashboard.layout-stacked .session-right{
+  width:100%;
+  min-width:0;
+}
+
+/* In a stacked/adaptive project, Timers become a compact top strip.
+   One timer no longer consumes half the screen. */
+#sessionView .session-dashboard.layout-stacked .session-timer-grid{
+  grid-template-columns:repeat(auto-fit,minmax(125px,190px))!important;
+  justify-content:start;
+  align-items:stretch;
+  gap:7px!important;
+  margin-bottom:7px!important;
+}
+#sessionView .session-dashboard.layout-stacked .timer-card{
+  width:100%;
+  min-width:0;
+  box-sizing:border-box;
+}
+
+/* If there is no Situation, there should be no blank Situation area.
+   Same rule for Response / Observation modules. */
+#sessionView #situationPanel.hidden,
+#sessionView #responsePanel.hidden,
+#sessionView #observationPanel.hidden,
+#sessionView #timerGrid.hidden,
+#sessionView #sessionLeft.hidden,
+#sessionView #sessionRight.hidden,
+#sessionView #currentSituationBlock.hidden{
+  display:none!important;
+}
+
+/* Observation is the main workspace in observation-heavy Projects. */
+#sessionView .session-dashboard.layout-stacked #observationPanel{
+  width:100%;
+  box-sizing:border-box;
+}
+#sessionView .session-dashboard.layout-stacked #observationGroups{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:8px!important;
+  width:100%;
+  min-width:0;
+}
+
+/* Event Counters naturally occupy one cell each.
+   Category / Rating need more horizontal room, so they span the row. */
+#sessionView #observationGroups .counter-observation{
+  grid-column:auto;
+  min-width:0;
+}
+#sessionView #observationGroups .choice-observation{
+  grid-column:1 / -1;
+  min-width:0;
+}
+
+/* Category / Rating option buttons use a stable 2-column grid.
+   This is easier to hit than a narrow vertical column in Split View. */
+#sessionView #observationGroups .choice-observation .situation-grid{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  width:100%;
+}
+
+/* When Observation is literally the only interactive module,
+   give it slightly more breathing room without wasting width. */
+#sessionView .session-dashboard.layout-observation-only #observationPanel{
+  padding:8px 10px!important;
+}
+#sessionView .session-dashboard.layout-observation-only #observationGroups{
+  align-items:start;
+}
+
+/* If Situation exists, keep the useful left/right research layout.
+   At narrow screen widths the existing global breakpoint still stacks it. */
+@media(max-width:900px){
+  #sessionView .session-dashboard.layout-split{
+    grid-template-columns:1fr!important;
+  }
+}
+
+/* Narrow Split View / phone:
+   keep two Observation columns while they remain usable, then collapse. */
+@media(max-width:430px){
+  #sessionView .session-dashboard.layout-stacked #observationGroups{
+    grid-template-columns:1fr!important;
+  }
+  #sessionView #observationGroups .choice-observation{
+    grid-column:auto;
+  }
+}
+
+/* Extremely narrow screens: Timer cards may use two flexible columns. */
+@media(max-width:360px){
+  #sessionView .session-dashboard.layout-stacked .session-timer-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  }
+}
+
 </style>
 
 <link rel="manifest" href="manifest.webmanifest">
@@ -708,7 +821,7 @@ html,body,.app{max-width:100%;overflow-x:hidden}
 <div class="app">
 <header class="compact-app-header">
   <div class="brand compact-brand">
-    <h1>Clinical Timer <span class="version-chip">V2.10</span></h1>
+    <h1>Clinical Timer <span class="version-chip">V2.11</span></h1>
     <span id="deviceModeLabel" class="device-chip"></span>
   </div>
   <div class="tabs compact-tabs">
@@ -725,7 +838,7 @@ html,body,.app{max-width:100%;overflow-x:hidden}
   <div class="card session-head-card">
     <div class="section-head">
       <div><div class="muted small">Project</div><h2 id="sessionProjectName">Research Mode</h2></div>
-      <div style="text-align:right"><div class="muted small">目前 Situation</div><div id="currentSituation" style="font-size:1.22rem;font-weight:900">尚未開始</div></div>
+      <div id="currentSituationBlock" style="text-align:right"><div class="muted small">目前 Situation</div><div id="currentSituation" style="font-size:1.22rem;font-weight:900">尚未開始</div></div>
     </div>
     <div class="actions">
       <button id="startBtn" class="btn primary">開始</button>
@@ -737,22 +850,22 @@ html,body,.app{max-width:100%;overflow-x:hidden}
   </div>
 
   <div class="session-dashboard">
-    <div class="session-left">
+    <div id="sessionLeft" class="session-left">
       <div id="timerGrid" class="session-timer-grid"></div>
 
-      <div class="card situation-panel">
+      <div id="situationPanel" class="card situation-panel">
         <div class="section-head"><h3>🎛 Situation</h3><span class="small muted">選擇當下情況</span></div>
         <div id="situationButtons" class="situation-grid" style="margin-top:7px"></div>
       </div>
     </div>
 
-    <div class="session-right">
-      <div class="card response-panel">
+    <div id="sessionRight" class="session-right">
+      <div id="responsePanel" class="card response-panel">
         <div class="panel-title">🙋 學生反應</div>
         <div id="responseButtons" class="response-grid"></div>
       </div>
 
-      <div class="card observation-panel">
+      <div id="observationPanel" class="card observation-panel">
         <div class="panel-title">👁 Observation</div>
         <div id="observationGroups" class="obs-grid"></div>
       </div>
@@ -1455,19 +1568,41 @@ function timerDisplay(t){
 }
 function renderSession(){
  project=ensureProjectDefaults(project);
+
+ const enabledTimers=project.timers.filter(t=>t.enabled);
+ const enabledObservations=project.observations.filter(o=>o.enabled);
+ const hasTimers=enabledTimers.length>0;
+ const hasSituations=project.situations.length>0;
+ const hasResponses=project.responses.length>0;
+ const hasObservations=enabledObservations.length>0;
+
+ const dashboard=$('.session-dashboard');
+ const shouldStack=!hasSituations || (!hasResponses&&!hasObservations);
+ dashboard.classList.toggle('layout-stacked',shouldStack);
+ dashboard.classList.toggle('layout-split',!shouldStack);
+ dashboard.classList.toggle('layout-observation-only',!hasSituations&&!hasResponses&&hasObservations);
+
+ $('#timerGrid').classList.toggle('hidden',!hasTimers);
+ $('#situationPanel').classList.toggle('hidden',!hasSituations);
+ $('#responsePanel').classList.toggle('hidden',!hasResponses);
+ $('#observationPanel').classList.toggle('hidden',!hasObservations);
+ $('#sessionLeft').classList.toggle('hidden',!hasTimers&&!hasSituations);
+ $('#sessionRight').classList.toggle('hidden',!hasResponses&&!hasObservations);
+ $('#currentSituationBlock').classList.toggle('hidden',!hasSituations);
+
  $('#sessionProjectName').textContent=project.name;
  renderSoundButton();
  $('#currentSituation').textContent=runtime?(runtime.paused?'全部暫停':currentSituationName()||'無 Situation'):'尚未開始';
  $('#startBtn').disabled=!!runtime?.running;$('#pauseBtn').disabled=!runtime?.running;$('#endBtn').disabled=!runtime?.running;
  $('#pauseBtn').textContent=runtime?.paused?'繼續':'暫停';
- $('#timerGrid').innerHTML=project.timers.filter(t=>t.enabled).map(t=>{
+ $('#timerGrid').innerHTML=enabledTimers.map(t=>{
   const d=timerDisplay(t);
   const due=runtime?.timers[t.id]?.due?' overdue':'';
   return `<div class="timer-card${due}"><div class="timer-name">${esc(t.name)}</div><div class="timer-value">${esc(d.value)}</div><div class="timer-note">${esc(d.note)}</div></div>`
- }).join('')||'<div class="card">未啟用 Timer。</div>';
- $('#situationButtons').innerHTML=project.situations.map(s=>`<button class="sit-btn ${runtime?.situationId===s.id?'active':''}" data-sit="${s.id}" style="${styles(s.color)}" ${!runtime?.running||runtime?.paused?'disabled':''}>${esc(s.name)}</button>`).join('')||'<span class="muted">此 Project 沒有 Situation。</span>';
- $('#responseButtons').innerHTML=project.responses.map(r=>`<button class="response-btn" data-res="${r.id}" style="${styles(r.color)}" ${!runtime?.running||runtime?.paused?'disabled':''}>${esc(r.name)}<span class="count">${runtime?.responses[r.id]||0}</span><span class="small">${r.mode==='count'?'只計數':'觸發 '+esc(r.targetSituationName)}</span></button>`).join('')||'<span class="muted">此 Project 沒有 Response Button。</span>';
- $('#observationGroups').innerHTML=project.observations.filter(o=>o.enabled).map(o=>{
+ }).join('');
+ $('#situationButtons').innerHTML=project.situations.map(s=>`<button class="sit-btn ${runtime?.situationId===s.id?'active':''}" data-sit="${s.id}" style="${styles(s.color)}" ${!runtime?.running||runtime?.paused?'disabled':''}>${esc(s.name)}</button>`).join('');
+ $('#responseButtons').innerHTML=project.responses.map(r=>`<button class="response-btn" data-res="${r.id}" style="${styles(r.color)}" ${!runtime?.running||runtime?.paused?'disabled':''}>${esc(r.name)}<span class="count">${runtime?.responses[r.id]||0}</span><span class="small">${r.mode==='count'?'只計數':'觸發 '+esc(r.targetSituationName)}</span></button>`).join('');
+ $('#observationGroups').innerHTML=enabledObservations.map(o=>{
   const rt=runtime?.observations[o.id];
   const int=parseTime(o.interval),rem=rt?fmt(Math.max(0,int-rt.cycle)):o.interval;
   if(o.type==='counter'){
@@ -1479,12 +1614,12 @@ function renderSession(){
   const seg=rt?.intervalIndex||1;
   const status=!runtime?'開始 Session 後可立即記錄':locked?`本段已記錄：${rt.currentValue}`:(rt?.due?'新時段：請記錄':'本段可隨時記錄一次');
   const flashing=!!(rt?.due&&!locked)||!!(rt?.alertUntil&&Date.now()<rt.alertUntil);
-  return `<div class="setup-row ${flashing?'overdue':''}" style="border-color:${o.color}">
+  return `<div class="setup-row choice-observation ${flashing?'overdue':''}" style="border-color:${o.color}">
     <div class="section-head"><strong>${esc(o.name)}</strong><span class="badge">第 ${seg} 段 · ${esc(rem)}</span></div>
     <div class="small muted" style="margin:3px 0 6px">${esc(status)}</div>
     <div class="situation-grid">${(o.options||[]).map(v=>`<button class="obs-btn" data-obs-cat="${o.id}" data-value="${esc(v)}" style="${styles(o.color)}" ${!runtime?.running||runtime?.paused||locked?'disabled':''}>${esc(v)}</button>`).join('')}</div>
   </div>`
- }).join('')||'<span class="muted">此 Project 沒有 Observation Group。</span>';
+ }).join('');
  $('#undoBtn').disabled=!runtime?.undoStack?.length;
  renderLog();
  let notices=[];
