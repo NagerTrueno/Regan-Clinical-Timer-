@@ -1,4 +1,4 @@
-const CACHE_NAME = 'regan-clinical-timer-v2-8';
+const CACHE_NAME = 'regan-clinical-timer-v2-9';
 const APP_SHELL = [
   './',
   './index.html',

@@ -306,7 +306,7 @@ html,body,.app{max-width:100%;overflow-x:hidden}
 }
 
 
-/* V2.8 — compact top controls */
+/* V2.9 — compact top controls */
 .app{
   padding-top:8px;
 }
@@ -469,7 +469,7 @@ html,body,.app{max-width:100%;overflow-x:hidden}
 }
 
 
-/* V2.8 — card-width-aware controls */
+/* V2.9 — card-width-aware controls */
 #sessionView .situation-panel,
 #sessionView .response-panel{
   container-type:inline-size;
@@ -531,6 +531,102 @@ html,body,.app{max-width:100%;overflow-x:hidden}
   }
 }
 
+
+/* V2.9 — response priority + centered adaptive Event Counter */
+
+/* Student Response:
+   Keep 2 columns for almost all practical phone/iPad widths.
+   Only collapse when the response panel itself is genuinely tiny. */
+#sessionView .response-panel{
+  container-type:inline-size;
+}
+#sessionView .response-panel .response-grid{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:6px!important;
+  width:100%!important;
+  min-width:0!important;
+}
+#sessionView .response-panel .response-btn{
+  width:100%!important;
+  max-width:100%!important;
+  min-width:0!important;
+  box-sizing:border-box!important;
+  padding-left:5px!important;
+  padding-right:5px!important;
+  overflow:hidden;
+  white-space:normal!important;
+  overflow-wrap:anywhere!important;
+  word-break:break-word!important;
+}
+#sessionView .response-panel .response-btn .small{
+  display:block;
+  line-height:1.12;
+  overflow-wrap:anywhere;
+}
+
+/* V2.8 changed to 1 column at 310px, which was too early in iPad Split View.
+   V2.9 keeps two columns down to a much smaller real card width. */
+@container (max-width: 220px){
+  #sessionView .response-panel .response-grid{
+    grid-template-columns:1fr!important;
+  }
+}
+
+/* Event Counter:
+   Use the available Observation cell, but keep the +1 button visually centered.
+   It fills a narrow cell and is capped on a wider cell, so it never hugs one side. */
+#sessionView .observation-panel .counter-observation{
+  display:flex;
+  flex-direction:column;
+  align-items:stretch;
+  min-width:0;
+  box-sizing:border-box;
+}
+#sessionView .observation-panel .counter-observation .section-head{
+  width:100%;
+  box-sizing:border-box;
+}
+#sessionView .observation-panel .counter-button{
+  display:flex!important;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  width:min(100%, 190px)!important;
+  max-width:100%!important;
+  min-width:0!important;
+  min-height:92px!important;
+  margin:8px auto 0!important;
+  box-sizing:border-box!important;
+  text-align:center!important;
+}
+#sessionView .observation-panel .counter-button .count,
+#sessionView .observation-panel .counter-button .small{
+  width:100%;
+  text-align:center;
+}
+
+/* At very small widths, keep the Event Counter comfortably touchable without overflow. */
+@container (max-width: 230px){
+  #sessionView .observation-panel .counter-button{
+    width:100%!important;
+    min-height:84px!important;
+  }
+}
+
+/* Fallback when container queries are unavailable:
+   keep two response columns unless the whole viewport is extremely narrow. */
+@supports not (container-type:inline-size){
+  #sessionView .response-panel .response-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  }
+  @media(max-width:300px){
+    #sessionView .response-panel .response-grid{
+      grid-template-columns:1fr!important;
+    }
+  }
+}
+
 </style>
 
 <link rel="manifest" href="manifest.webmanifest">
@@ -545,7 +641,7 @@ html,body,.app{max-width:100%;overflow-x:hidden}
 <div class="app">
 <header class="compact-app-header">
   <div class="brand compact-brand">
-    <h1>Clinical Timer <span class="version-chip">V2.8</span></h1>
+    <h1>Clinical Timer <span class="version-chip">V2.9</span></h1>
     <span id="deviceModeLabel" class="device-chip"></span>
   </div>
   <div class="tabs compact-tabs">
@@ -1310,7 +1406,7 @@ function renderSession(){
   if(o.type==='counter'){
    const seg=rt?.intervalIndex||1;
    const flashing=!!(rt?.alertUntil&&Date.now()<rt.alertUntil);
-   return `<div class="setup-row ${flashing?'overdue':''}" style="border-color:${o.color}"><div class="section-head"><strong>${esc(o.name)}</strong><span class="badge">第 ${seg} 段 · ${esc(rem)}</span></div><button class="obs-btn" data-obs-counter="${o.id}" style="${styles(o.color)}" ${!runtime?.running||runtime?.paused?'disabled':''}>＋1<span class="count" style="display:block;font-size:1.8rem">${rt?.total||0}</span><span class="small">本段 ${rt?.segment||0} · 上段 ${rt?.lastSegment||0}</span></button></div>`;
+   return `<div class="setup-row counter-observation ${flashing?'overdue':''}" style="border-color:${o.color}"><div class="section-head"><strong>${esc(o.name)}</strong><span class="badge">第 ${seg} 段 · ${esc(rem)}</span></div><button class="obs-btn counter-button" data-obs-counter="${o.id}" style="${styles(o.color)}" ${!runtime?.running||runtime?.paused?'disabled':''}>＋1<span class="count" style="display:block;font-size:1.8rem">${rt?.total||0}</span><span class="small">本段 ${rt?.segment||0} · 上段 ${rt?.lastSegment||0}</span></button></div>`;
   }
   const locked=!!rt?.recordedThisInterval;
   const seg=rt?.intervalIndex||1;
